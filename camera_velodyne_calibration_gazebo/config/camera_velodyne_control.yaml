@@ -1,0 +1,10 @@
+camera_velodyne:
+    joint_state_controller:
+        type: joint_state_controller/JointStateController
+        publish_rate: 50
+
+    velodyne_top_velocity_controller:
+        type: velocity_controllers/JointVelocityController
+        joint: velodyne_top_joint
+        pid: {p: 100.0, i: 0.01, d: 10.0}
+

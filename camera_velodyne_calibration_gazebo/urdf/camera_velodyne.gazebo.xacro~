@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+	<gazebo reference="velodyne_base_link">
+		<material>Gazebo/Gold</material>
+		<mu1>0.0</mu1>
+		<mu2>0.0</mu2>
+	</gazebo>
+	
+	<gazebo reference="velodyne_top_link">
+		<material>Gazebo/Gold</material>
+		<mu1>0.0</mu1>
+		<mu2>0.0</mu2>
+	</gazebo>
+
+	<gazebo reference="velodyne_laser_link">
+		<material>Gazebo/Black</material>
+	</gazebo>
+
+	<gazebo reference="camera_base_link">
+		<material>Gazebo/Gray</material>
+	</gazebo>
+	
+	<gazebo reference="lens_link">
+		<material>Gazebo/Black</material>
+	</gazebo>
+
+
+
+	<!-- ros_control plugin -->
+	<gazebo>
+		<plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+			<robotNamespace>/infant</robotNamespace>
+		</plugin>
+	</gazebo>
+</robot>

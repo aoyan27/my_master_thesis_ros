@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+	<gazebo reference="velodyne_base_link">
+		<material>Gazebo/Gold</material>
+		<mu1>0.0</mu1>
+		<mu2>0.0</mu2>
+	</gazebo>
+	
+	<gazebo reference="velodyne_top_link">
+		<material>Gazebo/Gold</material>
+		<mu1>0.0</mu1>
+		<mu2>0.0</mu2>
+	</gazebo>
+
+	<gazebo reference="velodyne_laser_link">
+		<material>Gazebo/Black</material>
+	</gazebo>
+
+	<gazebo reference="camera_base_link">
+		<material>Gazebo/Gold</material>
+	</gazebo>
+	
+	<gazebo reference="lens_link">
+		<material>Gazebo/Black</material>
+	</gazebo>
+
+	<gazebo reference="landmark_link">
+		<material>Gazebo/Gold</material>
+	</gazebo>
+
+	<!-- velodyne -->
+	<gazebo reference="velodyne_laser_core_link">
+		<sensor type="ray" name="head_velodyne_sensor">
+			<visualize>false</visualize>
+			<update_rate>2</update_rate>
+			<ray>
+				<scan>
+					<horizontal>
+						<samples>1092</samples>
+						<resolution>1</resolution>
+						<min_angle>-3.1415</min_angle>
+						<max_angle>3.1415</max_angle>
+					</horizontal>
+					<vertical>
+						<samples>32</samples>
+						<resolution>1</resolution>
+						<min_angle>-0.186227</min_angle>
+						<max_angle>0.535292</max_angle>
+					</vertical>
+				</scan>
+				<range>
+					<min>0.10</min>
+					<max>70.0</max>
+					<resolution>0.01</resolution>
+				</range>
+				<noise>
+					<type>gaussian</type>
+					<mean>0.0</mean>
+					<stddev>0.01</stddev>
+				</noise>
+			</ray>
+			<plugin name="gazebo_ros_head_velodyne_controller" filename="libgazebo_ros_block_laser.so">
+				<alwaysOn>true</alwaysOn>
+				<updateRate>2</updateRate>
+				<topicName>velodyne_points/points</topicName>
+				<frameName>velodyne_laser_core_link</frameName>
+			</plugin>
+		</sensor>
+	</gazebo>
+
+	<!-- camera -->
+	<gazebo reference="lens_link">
+		<sensor type="camera" name="camera1">
+			<update_rate>30.0</update_rate>
+			<camera name="usb_cam">
+				<horizontal_fov>1.0471975</horizontal_fov>
+				<image>
+					<width>640</width>
+					<height>480</height>
+					<format>R8G8B8</format>
+				</image>
+				<clip>
+					<near>0.04</near>
+					<far>300</far>
+				</clip>
+				<noise>
+					<type>gaussian</type>
+					<!-- Noise is sampled independently per pixel on each frame.
+					That pixel's noise value is added to each of its color
+					channels, which at that point lie in the range [0,1]. -->
+					<mean>0.0</mean>
+					<stddev>0.007</stddev>
+				</noise>
+			</camera>
+			<plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+				<alwaysOn>true</alwaysOn>
+				<updateRate>30.0</updateRate>
+				<cameraName>usb_cam</cameraName>
+				<imageTopicName>image_raw</imageTopicName>
+				<cameraInfoTopicName>camera_info</cameraInfoTopicName>
+				<frameName>lens_link</frameName>
+				<hackBaseline>0.07</hackBaseline>
+				<distortionK1>0.0</distortionK1>
+				<distortionK2>0.0</distortionK2>
+				<distortionK3>0.0</distortionK3>
+				<distortionT1>0.0</distortionT1>
+				<distortionT2>0.0</distortionT2>
+			</plugin>
+		</sensor>
+	</gazebo>
+
+
+	<!-- ros_control plugin -->
+	<gazebo>
+		<plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+			<robotNamespace>/camera_velodyne</robotNamespace>
+		</plugin>
+	</gazebo>
+</robot>
