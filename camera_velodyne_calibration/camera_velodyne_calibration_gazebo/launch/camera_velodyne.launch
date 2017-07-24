@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+	<include file="$(find camera_velodyne_calibration_gazebo)/launch/camera_velodyne_world.launch"/>
+
+	<include file="$(find camera_velodyne_calibration_gazebo)/launch/camera_velodyne_control.launch"/>
+
+	<node pkg="rostopic" type="rostopic" name="arbitrary_name" args="pub /camera_velodyne/velodyne_top_velocity_controller/command std_msgs/Float64 'data: 10.0' "/>
+
+	<node pkg="camera_velodyne_calibration_gazebo" type="convert_pointcloud2" name="convert_pointcloud2"/>
+
+	<node pkg="rviz" type="rviz" name="rviz" args="-d $(find camera_velodyne_calibration_gazebo)/launch/camera_velodyne_gazebo.rviz"/>
+
+
+
+</launch>

@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<sdf version="1.4">
+	<!-- We can use a custom world for the infant. -->
+
+	<world name="default">
+		<include>
+			<uri>model://ground_plane</uri>
+		</include>
+
+		<include>
+			<uri>model://starting_pen</uri>
+			<pose>0 -5 0 0 0 0</pose>
+		</include>
+
+		<!--include>
+			<uri>model://cafe_table</uri>
+			<pose>2 0 0 0 0 0</pose>
+			<name>cafe_table_1</name>
+		</include>
+		
+		<include>
+			<uri>model://cafe_table</uri>
+			<pose>0.0 1.0 0 0 0 0</pose>
+			<name>cafe_table_2</name>
+		</include-->
+
+		<!--include>
+			<uri>model://coke_can</uri>
+			<pose>0.5 0 2 0 0 0</pose>
+		</include-->
+
+		<!-- Global light source -->
+		<include>
+			<uri>model://sun</uri>
+		</include>
+
+	</world>
+</sdf>
