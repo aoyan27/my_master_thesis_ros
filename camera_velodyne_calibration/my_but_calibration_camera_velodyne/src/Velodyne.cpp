@@ -118,44 +118,6 @@ Mat Velodyne::Velodyne::project(Mat projection_matrix, Rect frame, PointCloud<Po
 	return plane_gray;
 }
 
-Mat Velodyne::Velodyne::project2(Mat projection_matrix, Rect frame, PointCloud<Point> *visible_points, vector<int> *index)
-{
-	Mat plane = cv::Mat::zeros(frame.size(), CV_32FC1);
-
-	for (PointCloud<Point>::iterator pt = point_cloud.points.begin(); pt < point_cloud.points.end(); pt++)
-	{
-
-		// behind the camera
-		if (pt->z < 0)
-		{
-			continue;
-		}
-
-		float intensity = pt->intensity;
-		cv::Point xy = Velodyne::project(*pt, projection_matrix);
-		if (xy.inside(frame))
-		{
-			if (visible_points != NULL)
-			{
-				visible_points->push_back(*pt);
-				index->push_back(distance(point_cloud.points.begin(), pt));
-				// cout<<"index : "<<distance(point_cloud.points.begin(), pt)<<endl;
-			}
-
-			//cv::circle(plane, xy, 3, intensity, -1);
-			plane.at<float>(xy) = intensity;
-		}
-	}
-
-	Mat plane_gray;
-	cv::normalize(plane, plane_gray, 0, 255, NORM_MINMAX, CV_8UC1);
-	dilate(plane_gray, plane_gray, Mat());
-	//Image::Image plane_img(plane_gray);
-	//return plane_img.computeIDTEdgeImage();
-
-	return plane_gray;
-}
-
 Mat Velodyne::Velodyne::project(Mat projection_matrix, Rect frame, Mat image)
 {
 	Mat plane = this->project(projection_matrix, frame, NULL);
