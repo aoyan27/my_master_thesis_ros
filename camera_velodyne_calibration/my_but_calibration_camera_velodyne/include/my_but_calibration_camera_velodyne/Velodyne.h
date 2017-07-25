@@ -75,7 +75,6 @@ public:
 
   // cv::Mat project(cv::Mat projection_matrix, cv::Rect frame, ::pcl::PointCloud<Point> *visible_points = NULL, std::vector<int>);
   cv::Mat project(cv::Mat projection_matrix, cv::Rect frame, ::pcl::PointCloud<Point> *visible_points = NULL, std::vector<int> *index = NULL);
-  cv::Mat project2(cv::Mat projection_matrix, cv::Rect frame, ::pcl::PointCloud<Point> *visible_points = NULL, std::vector<int> *index = NULL);
   cv::Mat project(cv::Mat projection_matrix, cv::Rect frame, cv::Mat plane);
   void intensityByDiff(Processing processing);
   void intensityByRangeDiff();
