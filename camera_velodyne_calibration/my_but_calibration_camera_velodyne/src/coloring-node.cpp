@@ -14,6 +14,7 @@
 #include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
+#include <std_msgs/Int32MultiArray.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <camera_info_manager/camera_info_manager.h>
@@ -52,6 +53,10 @@ cv::Mat projection_matrix;
 cv::Mat frame_rgb;
 vector<float> DoF;
 
+vector<int> bbox_array;
+
+bool bbox_flag = false;
+
 void cameraInfoCallback(const sensor_msgs::CameraInfoConstPtr& msg){
 	float p[12];
 	float *pp = p;
@@ -65,6 +70,17 @@ void cameraInfoCallback(const sensor_msgs::CameraInfoConstPtr& msg){
 void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
 	frame_rgb = cv_ptr->image;
+}
+
+
+void bboxCallback(const std_msgs::Int32MultiArray::ConstPtr &msg){
+	bbox_array.clear();
+	size_t msg_size = msg->data.size();
+	for(size_t i=0;i<msg_size;i++){
+		bbox_array.push_back(msg->data[i]);
+		cout<<"bbox_array["<<i<<"] : "<<bbox_array[i]<<endl;
+	}
+	bbox_flag = true;
 }
 
 void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg){
@@ -101,21 +117,62 @@ void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg){
 	toROSMsg(visible_points, pc2_debug2);
 	pc2_debug2.header = msg->header;
 	pub_debug2.publish(pc2_debug2);
+	// cout<<"visible_points : "<<visible_points.points.size()<<endl;
 
-	cout<<"visible_points : "<<visible_points.points.size()<<endl;
+	cout<<"frame_rgb.cols : "<<frame_rgb.cols<<"typeid(frame_rgb.cols).name() : "<<typeid(frame_rgb.cols).name()<<endl;
+	cout<<"frame_rgb.rows : "<<frame_rgb.rows<<"typeid(frame_rgb.rows).name() : "<<typeid(frame_rgb.rows).name()<<endl;
+
+	if(bbox_flag){	
+		cout<<"QWEWQEQEQWEQ#WEWQEWQE"<<endl;
+		// cout<<"Rect(bbox_array[0], bbox_array[1], bbox_array[2], bbox_array[3]) : "<<Rect(bbox_array[0], bbox_array[1], bbox_array[2], bbox_array[3])<<endl;
+		int temp_cols = bbox_array[2] - bbox_array[0];
+		int temp_rows = bbox_array[3] - bbox_array[1];
+		cout<<"(temp_cols, temp_rows) : ("<<temp_cols<<", "<<temp_rows<<")"<<endl;
+		// cout<<"bbox_array[2] - bbox_array[0] : "<<bbox_array[2] - bbox_array[0]<<endl;
+		// cout<<"bbox_array[3] - bbox_array[1] : "<<bbox_array[3] - bbox_array[1]<<endl;
+		// cout<<"Rect(bbox_array[0], bbox_array[1], bbox_array[2], bbox_array[3]) : "<<Rect(bbox_array[0], bbox_array[1], bbox_array[2] - bbox_array[0], bbox_array[3] - bbox_array[1])<<endl;
+		cout<<"Rect(bbox_array[0], bbox_array[1], bbox_array[2], bbox_array[3]) : "<<Rect(bbox_array[0], bbox_array[1], temp_cols, temp_rows)<<endl;
+		// cout<<bbox_array[0]<<", "<<bbox_array[1]<<", "<<bbox_array[2]<<", "<<bbox_array[3]<<endl;
+		// Velodyne::Velodyne visible_scan2(visible_points);
+		PointCloud<Velodyne::Point> visible_points_2;
+		vector<int> index_2;
+		// visible_scan2.project(projection_matrix, Rect(bbox_array[0], bbox_array[1], bbox_array[2], bbox_array[3]), &visible_points_2, &index_2);
+		// transformed.project(projection_matrix, Rect(bbox_array[0], bbox_array[1], bbox_array[2], bbox_array[3]), &visible_points_2, &index_2);
+		// transformed.project(projection_matrix, Rect(bbox_array[0], bbox_array[1], bbox_array[2] - bbox_array[0], bbox_array[3] - bbox_array[1]), &visible_points_2, &index_2);
+		transformed.project(projection_matrix, Rect(bbox_array[0], bbox_array[1], temp_cols, temp_rows), &visible_points_2, &index_2);
+		cout<<"visible_points_2 : "<<visible_points_2.points.size()<<endl;
+		cout<<"ASDADADASDA"<<endl;
+
+		sensor_msgs::PointCloud2 pc2_debug3;
+		toROSMsg(visible_points_2, pc2_debug3);
+		pc2_debug3.header = msg->header;
+		pub_debug3.publish(pc2_debug3);
+		cout<<"ASDADADASDA----------------------------------"<<endl;
+		
+		Velodyne::Velodyne visible_scan3(visible_points_2);
+
+		PointCloud<PointXYZRGB> color_cloud_2 = visible_scan3.colour(frame_rgb, projection_matrix);
+		cout<<"ASDADADASDA=================================="<<endl;
+
+		Eigen::Affine3f transf_2 = getTransformation(0, 0, 0, -M_PI/2, 0, -M_PI/2);
+		transformPointCloud(color_cloud_2, color_cloud_2, transf_2);
+
+		sensor_msgs::PointCloud2 pc2_color;
+		toROSMsg(color_cloud_2, pc2_color);
+		pc2_color.header = msg->header;
+		pub_debug4.publish(pc2_color);
+
+		bbox_flag = false;
+	}
+
 	Velodyne::Velodyne visible_scan(visible_points);
-
-	sensor_msgs::PointCloud2 pc2_debug3;
-	toROSMsg(visible_points, pc2_debug3);
-	pc2_debug3.header = msg->header;
-	pub_debug3.publish(pc2_debug3);
 
 	PointCloud<PointXYZRGB> color_cloud = visible_scan.colour(frame_rgb, projection_matrix);
 
-	sensor_msgs::PointCloud2 pc2_color;
-	toROSMsg(color_cloud, pc2_color);
-	pc2_color.header = msg->header;
-	pub_debug4.publish(pc2_color);
+	// sensor_msgs::PointCloud2 pc2_color;
+	// toROSMsg(color_cloud, pc2_color);
+	// pc2_color.header = msg->header;
+	// pub_debug4.publish(pc2_color);
 
 	// reverse axix switching:
 	Eigen::Affine3f transf = getTransformation(0, 0, 0, -M_PI/2, 0, -M_PI/2);
@@ -194,6 +251,8 @@ int main(int argc, char** argv)
 	ros::Subscriber info_sub = n.subscribe(CAMERA_INFO_TOPIC, 10, cameraInfoCallback);
 
 	ros::Subscriber pc_sub = n.subscribe<sensor_msgs::PointCloud2>(VELODYNE_TOPIC, 1, pointCloudCallback);
+
+	ros::Subscriber bbox_sub = n.subscribe<std_msgs::Int32MultiArray>("/bbox_array", 1, bboxCallback);
 
 	ros::spin();
 

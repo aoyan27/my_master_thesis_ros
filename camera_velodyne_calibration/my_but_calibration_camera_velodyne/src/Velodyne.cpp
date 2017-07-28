@@ -95,6 +95,7 @@ Mat Velodyne::Velodyne::project(Mat projection_matrix, Rect frame, PointCloud<Po
 
 		float intensity = pt->intensity;
 		cv::Point xy = Velodyne::project(*pt, projection_matrix);
+
 		if (xy.inside(frame))
 		{
 			if (visible_points != NULL)
