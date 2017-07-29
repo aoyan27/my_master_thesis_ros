@@ -152,6 +152,7 @@ SET(CMAKE_CXX_FLAGS "-std=c++11 -O2 -g -Wall ${CMAKE_CXX_FLAGS}")
 add_executable(calibration src/calibration-node.cpp src/Image.cpp src/Velodyne.cpp src/Similarity.cpp src/Calibration3DMarker.cpp)
 add_executable(coloring src/coloring-node.cpp src/Image.cpp src/Velodyne.cpp)
 add_executable(integrate_points_color_normal src/integrate_points_color_normal.cpp)
+add_executable(human_points_extractor src/human_points_extractor.cpp)
 
 add_executable(test_pcl src/test.cpp)
 
@@ -173,6 +174,10 @@ target_link_libraries(coloring
 	${PCL_LIBRARIES}
 )
 target_link_libraries(integrate_points_color_normal
+	${catkin_LIBRARIES}
+	${PCL_LIBRARIES}
+)
+target_link_libraries(human_points_extractor
 	${catkin_LIBRARIES}
 	${PCL_LIBRARIES}
 )
