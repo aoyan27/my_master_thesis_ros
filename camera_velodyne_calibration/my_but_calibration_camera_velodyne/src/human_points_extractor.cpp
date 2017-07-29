@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
+#include <std_msgs/Header.h>
 #include <std_msgs/Int32MultiArray.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -31,6 +32,7 @@ cv::Mat projection_matrix;
 
 ros::Publisher pub_debug;
 
+std_msgs::Header img_header;
 
 vector<int> bbox_array;
 
@@ -84,6 +86,12 @@ void transform(PointCloud<PointXYZRGB>::Ptr input, PointCloud<PointXYZRGB>::Ptr 
 void transform_DoF(PointCloud<PointXYZRGB>::Ptr input, PointCloud<PointXYZRGB>::Ptr output, vector<float> dof)
 {
 	transform(input, output, dof[0], dof[1], dof[2], dof[3], dof[4], dof[5]);
+}
+
+void imageHeaderCallback(const std_msgs::HeaderConstPtr& msg){
+	// cout<<"msg : "<<msg<<endl;
+	img_header = *msg;
+	cout<<"img_header : "<<endl<<img_header<<endl;
 }
 
 void cameraInfoCallback(const sensor_msgs::CameraInfoConstPtr& msg)
@@ -165,6 +173,7 @@ int main(int argc, char** argv)
 	ros::Subscriber sub_camerainfo = n.subscribe(CAMERA_INFO_TOPIC, 1, cameraInfoCallback);
 	ros::Subscriber sub_points = n.subscribe(VELODYNE_COLOR_TOPIC, 1, pointCloudCallback);
 
+	ros::Subscriber sub_header = n.subscribe("/image_header", 1, imageHeaderCallback);
 	ros::Subscriber sub_bbox = n.subscribe("/bbox_array", 1, bboxCallback);
 
 	ros::spin();
