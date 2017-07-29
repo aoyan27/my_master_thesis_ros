@@ -58,7 +58,8 @@ class image_converter:
         start = time.time()
         img_header = Header()
         img_header = msg.header
-        print "img_header : ", img_header
+        print "img_header : "
+        print img_header
         self.header_pub.publish(img_header)
         #  print "msg.header : ", msg.header
         try:
