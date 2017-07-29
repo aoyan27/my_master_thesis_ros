@@ -17,7 +17,8 @@
 #include <std_msgs/Int32MultiArray.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/PointCloud2.h>
-#include <camera_info_manager/camera_info_manager.h>
+#include <sensor_msgs/CameraInfo.h>
+// #include <camera_info_manager/camera_info_manager.h>
 #include <tf/tf.h>
 // #include <velodyne_pointcloud/point_types.h>
 #include <pcl_ros/point_cloud.h>
@@ -103,8 +104,8 @@ void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg){
 	pub_debug2.publish(pc2_debug2);
 	// cout<<"visible_points : "<<visible_points.points.size()<<endl;
 
-	cout<<"frame_rgb.cols : "<<frame_rgb.cols<<"typeid(frame_rgb.cols).name() : "<<typeid(frame_rgb.cols).name()<<endl;
-	cout<<"frame_rgb.rows : "<<frame_rgb.rows<<"typeid(frame_rgb.rows).name() : "<<typeid(frame_rgb.rows).name()<<endl;
+	cout<<"frame_rgb.cols : "<<frame_rgb.cols<<" typeid(frame_rgb.cols).name() : "<<typeid(frame_rgb.cols).name()<<endl;
+	cout<<"frame_rgb.rows : "<<frame_rgb.rows<<" typeid(frame_rgb.rows).name() : "<<typeid(frame_rgb.rows).name()<<endl;
 
 	Velodyne::Velodyne visible_scan(visible_points);
 
