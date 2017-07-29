@@ -10,8 +10,7 @@ import sys
 import cv2 as cv
 import numpy as np
 
-from std_msgs.msg import String
-from std_msgs.msg import Int32MultiArray
+from std_msgs.msg import String, Header, Int32MultiArray
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
@@ -23,6 +22,7 @@ from models.faster_rcnn import FasterRCNN
 from models.vgg16 import VGG16Prev
 
 import copy
+import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--nms_thresh', type=float, default=0.3)
@@ -45,6 +45,7 @@ class image_converter:
     def __init__(self):
         self.image_pub = rospy.Publisher("/result_image", Image, queue_size=1)
         self.bbox_pub = rospy.Publisher("/bbox_array", Int32MultiArray, queue_size=1)
+        self.header_pub = rospy.Publisher("/image_header", Header, queue_size=1)
         self.bridge = CvBridge()
         #  self.image_sub = rospy.Subscriber("/usb_cam/image_raw", Image, self.ImageCallback)
         self.image_sub = rospy.Subscriber("/zed/rgb/image_raw_color", Image, self.ImageCallback)
@@ -54,7 +55,12 @@ class image_converter:
         self.model = None
 
     def ImageCallback(self, msg):
-
+        start = time.time()
+        img_header = Header()
+        img_header = msg.header
+        print "img_header : ", img_header
+        self.header_pub.publish(img_header)
+        #  print "msg.header : ", msg.header
         try:
             cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
         except CvBridgeError as e:
@@ -85,7 +91,8 @@ class image_converter:
         result = self.draw_result(orig_image, im_scale, cls_score, bbox_pred, args.nms_thresh, args.conf)
         
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(result, "bgr8"))
-
+        elapsed_time = time.time() - start
+        print ("elapsed_time:{0}".format(elapsed_time) + "[sec]")
         #  cv.imshow("Origin Image", cv_image)
         #  cv.imshow("Origin Image", resize_image)
         #  cv.imshow("Result Image", result)
