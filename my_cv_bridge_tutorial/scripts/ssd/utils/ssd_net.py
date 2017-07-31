@@ -6,7 +6,7 @@ import chainer.functions as F
 from chainer import cuda
 import numpy as np
 
-from util.prior import prior
+from utils.prior import prior
 
 #xp = cuda.cupy
 
