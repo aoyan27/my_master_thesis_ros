@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #! -*- coding: utf-8 -*-
 from Cython.Build import cythonize
 from distutils.core import setup
