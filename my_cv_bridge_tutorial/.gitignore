@@ -1,2 +1,2 @@
 data/faster_rcnn
-*.so
+scripts/faster_rcnn/**/*.so
