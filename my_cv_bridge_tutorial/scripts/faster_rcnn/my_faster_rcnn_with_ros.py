@@ -176,7 +176,7 @@ def main(args):
     ic = image_converter()
     ic.get_model()
 
-    rospy.init_node("image_converter")
+    rospy.init_node("my_faster_rcnn_with_ros")
 
     #  cv.namedWindow("Origin Image")
     #  cv.namedWindow("Result Image")
