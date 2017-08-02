@@ -7,7 +7,6 @@ ctypedef np.float_t DTYPE_t
 
 
 def prior(size, min_size, max_size, aspect, flip, clip, variance):
-    #  print "ADASD!"
     cdef unsigned int height = size[0]
     cdef unsigned int width = size[1]
     cdef float img_height = 300
@@ -44,10 +43,6 @@ def prior(size, min_size, max_size, aspect, flip, clip, variance):
                 top_data[h, w, idx, 0, 2] = (center_x + box_width / 2.) / img_width
                 top_data[h, w, idx, 0, 3] = (center_y + box_height / 2.) / img_height
     if clip:
-        #  print "asdasdasd"
-        #  print "np.where", np.where(top_data < 0)
-        #  print "top_data : ", top_data
-        #  print "top_data : ", top_data[np.where(top_data < 0)]
         top_data[np.where(top_data < 0)] = 0
         top_data[np.where(top_data > 1)] = 1
         top_data[:, :, :, 1] = variance
