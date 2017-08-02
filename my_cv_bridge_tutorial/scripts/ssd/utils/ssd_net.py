@@ -232,14 +232,14 @@ class SSD (chainer.Chain):
             F.reshape(self.h_pool6_mbox_conf_flat, [batchsize, -1, 21]),
         ], axis=1)
 
-        self.mbox_conf_reahpe = F.reshape(
+        self.mbox_conf_reshape = F.reshape(
             self.mbox_conf, (7308 * batchsize, 21))
-        self.mbox_conf_softmax = F.softmax(self.mbox_conf_reahpe)
-        self.mbox_conf_softmax_reahpe = F.reshape(
+        self.mbox_conf_softmax = F.softmax(self.mbox_conf_reshape)
+        self.mbox_conf_softmax_reshape = F.reshape(
             self.mbox_conf_softmax, (batchsize, 7308, 21))
 
         if self.train:
-            mbox_conf = cuda.to_cpu(self.mbox_conf_softmax_reahpe.data)
+            mbox_conf = cuda.to_cpu(self.mbox_conf_softmax_reshape.data)
             dammy_label = np.zeros([batchsize, 7308, 21])
             for i in range(batchsize):
                 self.conf_num = int(conf_mask[i].sum())
@@ -267,4 +267,4 @@ class SSD (chainer.Chain):
             self.accuracy = F.accuracy(self.train_conf, self.val_conf)
             return self.loss
         else:
-            return self.mbox_loc, self.mbox_conf_softmax_reahpe
+            return self.mbox_loc, self.mbox_conf_softmax_reshape
