@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+	<rosparam command="load" file="$(find my_but_calibration_camera_velodyne)/conf/calibration_by_scan_matching.yaml"/>
+	<node pkg="my_but_calibration_camera_velodyne" type="calibration_by_scan_matching" name="calibration_by_scan_matching" output="screen"/>
+	<!-- <param name="output_filename" value="/home/amsl/ros_catkin_ws/src/master_thesis/camera_velodyne_calibration/my_but_calibration_camera_velodyne/conf/my_calibration.yaml"/> -->
+</launch>
