@@ -12,6 +12,8 @@ using namespace std;
 string OUTPUT_FILE;
 string VELODYNE_FILE;
 string ZED_FILE;
+string OUTPUT_PCD;
+vector<float> init_DoF;
 
 int main(int argc, char** argv)
 {
@@ -29,6 +31,14 @@ int main(int argc, char** argv)
 	n.getParam("/input_zed_filename", ZED_FILE);
 	cout<<"input_zed_filename : "<<ZED_FILE<<endl;
 	
+	n.getParam("/output_pcd", OUTPUT_PCD);
+	cout<<"output_pcd : "<<OUTPUT_PCD<<endl;
+
+	n.getParam("/init_6DoF", init_DoF);
+	for(size_t i=0; i<init_DoF.size();i++){
+		cout<<"init_6DoF : "<<init_DoF[i]<<endl;
+	}
+
 	// Loading first pcd file.
 	pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud (new pcl::PointCloud<pcl::PointXYZ>);
 	if (pcl::io::loadPCDFile<pcl::PointXYZ> (ZED_FILE, *target_cloud) == -1){
@@ -46,7 +56,7 @@ int main(int argc, char** argv)
 	cout<<"Loaded "<<input_cloud->size()<<" data points from source pcd file."<<endl;
 	
 	Eigen::AngleAxisf rot(0.0, Eigen::Vector3f::UnitZ());
-	Eigen::Translation3f trans(0.500, 0, 0);
+	Eigen::Translation3f trans(init_DoF[0], init_DoF[1], init_DoF[2]);
 	Eigen::Matrix4f sample_matrix = (trans * rot).matrix();
 	pcl::transformPointCloud(*input_cloud, *input_cloud, sample_matrix);
 	pcl::io::savePCDFileASCII ("/home/amsl/ros_catkin_ws/src/master_thesis/camera_velodyne_calibration/my_but_calibration_camera_velodyne/pcd_data/sample_input.pcd", *input_cloud);
@@ -79,7 +89,7 @@ int main(int argc, char** argv)
 	ndt.setInputTarget(target_cloud);
 
 	Eigen::AngleAxisf init_rotation(0.0, Eigen::Vector3f::UnitZ());
-	Eigen::Translation3f init_translation(0.500, 0, 0);
+	Eigen::Translation3f init_translation(init_DoF[0], init_DoF[1], init_DoF[2]);
 	Eigen::Matrix4f init_guess = (init_translation * init_rotation).matrix();
 
 
@@ -90,7 +100,7 @@ int main(int argc, char** argv)
 	cout<<ndt.getFinalTransformation()<<endl;
 
 	// Saving transformed input cloud.
-	pcl::io::savePCDFileASCII ("/home/amsl/ros_catkin_ws/src/master_thesis/camera_velodyne_calibration/my_but_calibration_camera_velodyne/pcd_data/output.pcd", *output_cloud);
+	pcl::io::savePCDFileASCII (OUTPUT_PCD, *output_cloud);
 
 
 
