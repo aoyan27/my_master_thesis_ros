@@ -7,11 +7,11 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/CameraInfo.h>
 // #include <camera_info_manager/camera_info_manager.h>
-#include <tf/tf.h>
+// #include <tf/tf.h>
 
 #include "opencv2/opencv.hpp"
 
-#include <pcl_ros/point_cloud.h>
+// #include <pcl_ros/point_cloud.h>
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -177,4 +177,7 @@ int main(int argc, char** argv)
 	ros::Subscriber sub_bbox = n.subscribe("/bbox_array", 1, bboxCallback);
 
 	ros::spin();
+
+
+	return 0;
 }
