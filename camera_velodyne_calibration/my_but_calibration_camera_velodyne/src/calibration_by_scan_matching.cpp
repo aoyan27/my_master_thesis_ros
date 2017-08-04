@@ -1,11 +1,15 @@
 #include <ros/ros.h>
 
+#include <tf/tf.h>
+
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
 #include <pcl/filters/approximate_voxel_grid.h>
 #include <pcl/registration/ndt.h>
+
+#include <stdio.h>
 
 using namespace std;
 
@@ -96,9 +100,27 @@ int main(int argc, char** argv)
 	pcl::PointCloud<pcl::PointXYZ>::Ptr output_cloud (new pcl::PointCloud<pcl::PointXYZ>);
 	ndt.align(*output_cloud, init_guess);
 
-	cout<<"Normal Distributions Transform has converged:"<<ndt.hasConverged()<<" score: "<<ndt.getFitnessScore()<<endl;
-	cout<<ndt.getFinalTransformation()<<endl;
+	cout<<"Normal Distributions Transform has converged:"<<ndt.hasConverged()<<", score: "<<ndt.getFitnessScore()<<endl;
 
+	Eigen::Matrix4f t(Eigen::Matrix4f::Identity());
+	t = ndt.getFinalTransformation();
+	cout<<t<<endl;
+
+	tf::Matrix3x3 mat;
+	mat.setValue(static_cast<double>(t(0, 0)), static_cast<double>(t(0, 1)), static_cast<double>(t(0, 2)),
+				   static_cast<double>(t(1, 0)), static_cast<double>(t(1, 1)), static_cast<double>(t(1, 2)),
+				   static_cast<double>(t(2, 0)), static_cast<double>(t(2, 1)), static_cast<double>(t(2, 2)));
+	double roll, pitch, yaw;
+	mat.getRPY(roll, pitch, yaw, 1);
+	// cout<<"x : "<<t(0, 3)<<endl;
+	// cout<<"y : "<<t(1, 3)<<endl;
+	// cout<<"z : "<<t(2, 3)<<endl;
+	// cout<<"roll : "<<roll<<endl;
+	// cout<<"pitch : "<<pitch<<endl;
+	// cout<<"yaw : "<<yaw<<endl;
+	
+	printf("6DoF: [%f, %f, %f, %f, %f, %f]\n", t(0, 3), t(1, 3), t(2, 3), roll, pitch, yaw);
+	
 	// Saving transformed input cloud.
 	pcl::io::savePCDFileASCII (OUTPUT_PCD, *output_cloud);
 
