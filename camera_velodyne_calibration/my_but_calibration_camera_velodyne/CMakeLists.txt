@@ -155,7 +155,7 @@ add_executable(integrate_points_color_normal src/integrate_points_color_normal.c
 add_executable(human_points_extractor src/human_points_extractor.cpp)
 
 add_executable(calibration_by_scan_matching src/calibration_by_scan_matching.cpp)
-# add_executable(save_pcd_zed_velodyne src/save_pcd_zed_velodyne.cpp)
+add_executable(save_pcd_zed_velodyne src/save_pcd_zed_velodyne.cpp)
 
 add_executable(test_pcl src/test.cpp)
 
@@ -189,10 +189,10 @@ target_link_libraries(calibration_by_scan_matching
 	${catkin_LIBRARIES}
 	${PCL_LIBRARIES}
 )
-# target_link_libraries(save_pcd_zed_velodyne
-	# ${catkin_LIBRARIES}
-	# ${PCL_LIBRARIES}
-# )
+target_link_libraries(save_pcd_zed_velodyne
+	${catkin_LIBRARIES}
+	${PCL_LIBRARIES}
+)
 
 target_link_libraries(test_pcl
 	${catkin_LIBRARIES}
