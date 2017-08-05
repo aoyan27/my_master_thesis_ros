@@ -2,4 +2,4 @@ output_filename: /home/amsl/ros_catkin_ws/src/master_thesis/camera_velodyne_cali
 input_velodyne_filename: /home/amsl/ros_catkin_ws/src/master_thesis/camera_velodyne_calibration/my_but_calibration_camera_velodyne/pcd_data/velodyne.pcd
 input_zed_filename: /home/amsl/ros_catkin_ws/src/master_thesis/camera_velodyne_calibration/my_but_calibration_camera_velodyne/pcd_data/zed.pcd
 output_pcd: /home/amsl/ros_catkin_ws/src/master_thesis/camera_velodyne_calibration/my_but_calibration_camera_velodyne/pcd_data/output.pcd
-init_6DoF: [0.500, 0.0, 0.0, 0.0, 0.0, 0.0]
+init_6DoF: [-0.00, 0.0, 0.000, 0.0, 0.0, 0.0]

@@ -3,5 +3,6 @@
 	<rosparam command="load" file="$(find my_but_calibration_camera_velodyne)/conf/calibration_by_scan_matching.yaml"/>
 	<node pkg="my_but_calibration_camera_velodyne" type="save_pcd_zed_velodyne" name="save_pcd_zed_velodyne" output="screen"/>
 	<param name="velodyne_topic" value="/velodyne_points"/>
-	<param name="zed_topic" value="/velodyne_points"/>
+	<param name="zed_topic" value="/zed/points"/>
+	<!-- <param name="zed_topic" value="/velodyne_points"/> -->
 </launch>

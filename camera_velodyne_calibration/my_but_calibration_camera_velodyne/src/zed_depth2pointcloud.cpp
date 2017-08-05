@@ -43,11 +43,22 @@ void depthToPoints(cv::Mat img, pcl::PointCloud<pcl::PointXYZ>::Ptr pc){
 			// cout<<"img.at<float>("<<y<<", "<<x<<") : "<<img.at<float>(y, x)<<endl;
 			float dist = img.at<float>(y, x);
 			if(dist>0){
-				pc->points.resize(index+1);
-				pc->points[index].z = dist;
-				pc->points[index].x = ((float)x - cx) * (dist / 1000.0) / (f / 1000.0);
-				pc->points[index].y = ((float)y - cy) * (dist / 1000.0) / (f / 1000.0);
-				index++;
+				float Z = dist;
+				float X = ((float)x - cx) * (dist / 1000.0) / (f / 1000.0);
+				float Y = ((float)y - cy) * (dist / 1000.0) / (f / 1000.0);
+				if(X <= 6 && Y <= 6 && Z <= 6){
+					pc->points.resize(index+1);
+					pc->points[index].z = Z;
+					pc->points[index].x = X;
+					pc->points[index].y = Y;
+					index++;
+				}
+
+				// pc->points.resize(index+1);
+				// pc->points[index].z = dist;
+				// pc->points[index].x = ((float)x - cx) * (dist / 1000.0) / (f / 1000.0);
+				// pc->points[index].y = ((float)y - cy) * (dist / 1000.0) / (f / 1000.0);
+				// index++;
 			}
 		}
 	}
