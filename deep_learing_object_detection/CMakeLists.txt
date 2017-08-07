@@ -114,7 +114,7 @@ endif()
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES deep_learing_object_detection
-#  CATKIN_DEPENDS cv_bridge roscpp rospy sensor_msgs std_msgs tf
+ CATKIN_DEPENDS cv_bridge image_geometry image_transport roscpp rospy sensor_msgs std_msgs tf 
 #  DEPENDS system_lib
 )
 
