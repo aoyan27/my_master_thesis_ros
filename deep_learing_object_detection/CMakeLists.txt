@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_geometry
   image_transport
+  nodelet
   roscpp
   rospy
   sensor_msgs
@@ -19,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenCV REQUIRED)
 find_package(PCL 1.8.0 REQUIRED)
+find_package(Boost)
 
 find_package(OpenMP)
 if (OPENMP_FOUND)
@@ -129,6 +131,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
 )
 
 link_directories(${PCL_LIBRARY_DIRS})
@@ -141,6 +144,9 @@ SET(CMAKE_CXX_FLAGS "-std=c++11 -O2 -g -Wall ${CMAKE_CXX_FLAGS}")
 # add_library(deep_learing_object_detection
 #   src/${PROJECT_NAME}/deep_learing_object_detection.cpp
 # )
+add_library(heightmap_nodelet 
+  src/height_map/heightmap_nodelet.cpp src/height_map/heightmap.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -150,6 +156,9 @@ SET(CMAKE_CXX_FLAGS "-std=c++11 -O2 -g -Wall ${CMAKE_CXX_FLAGS}")
 ## Declare a C++ executable
 # add_executable(deep_learing_object_detection_node src/deep_learing_object_detection_node.cpp)
 add_executable(human_points_extractor src/human_points_extractor.cpp)
+add_executable(human_cluster src/human_cluster.cpp)
+
+add_executable(heightmap_node src/height_map/heightmap_node.cpp src/height_map/heightmap.cpp)
 
 
 ## Add cmake target dependencies of the executable
@@ -162,6 +171,22 @@ add_executable(human_points_extractor src/human_points_extractor.cpp)
 # )
 target_link_libraries(human_points_extractor
   ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+target_link_libraries(human_cluster
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+
+target_link_libraries(heightmap_node
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+target_link_libraries(heightmap_nodelet
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
   ${PCL_LIBRARIES}
 )
 
