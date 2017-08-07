@@ -149,11 +149,8 @@ SET(CMAKE_CXX_FLAGS "-std=c++11 -O2 -g -Wall ${CMAKE_CXX_FLAGS}")
 
 ## Declare a C++ executable
 # add_executable(deep_learing_object_detection_node src/deep_learing_object_detection_node.cpp)
-add_executable(my_image_transport_test src/my_image_transport_test.cpp)
-add_executable(my_image_converter src/my_image_converter.cpp)
+add_executable(human_points_extractor src/human_points_extractor.cpp)
 
-
-add_executable(pcl_test src/pcl_test.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -163,17 +160,9 @@ add_executable(pcl_test src/pcl_test.cpp)
 # target_link_libraries(deep_learing_object_detection_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(my_image_transport_test
+target_link_libraries(human_points_extractor
   ${catkin_LIBRARIES}
-)
-target_link_libraries(my_image_converter
-  ${catkin_LIBRARIES}
-)
-
-
-target_link_libraries(pcl_test
-	${catkin_LIBRARIES}
-	${PCL_LIBRARIES}
+  ${PCL_LIBRARIES}
 )
 
 #############
