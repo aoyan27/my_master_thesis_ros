@@ -4,6 +4,9 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/common/common.h>
+#include <pcl/common/eigen.h>
+#include <pcl/common/centroid.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/ModelCoefficients.h>
 #include <pcl/sample_consensus/method_types.h>
@@ -24,27 +27,100 @@ ros::Publisher pub_debug;
 ros::Publisher pub_debug2;
 ros::Publisher pub_debug3;
 
+float calculate_distance_xy_plane(pcl::PointXYZ input_point)
+{
+	return sqrt(pow(input_point.x, 2.0) + pow(input_point.y, 2.0));
+}
+
+void calculate_centroid(CloudType input_cloud, pcl::PointXYZ *centroid_point)
+{
+	Eigen::Vector4f xyz_centroid(0.0, 0.0, 0.0, 0.0);
+	pcl::compute3DCentroid(input_cloud, xyz_centroid);
+	centroid_point->x = xyz_centroid[0];
+	centroid_point->y = xyz_centroid[1];
+	centroid_point->z = xyz_centroid[2];
+}
+
 void cluster(CloudType::Ptr input_cloud,
-			 CloudType::Ptr cluster_cloud,
+			 CloudType::Ptr output_cloud,
 			 std::vector<pcl::PointIndices> &cluster_indices)
 {
 	pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType>);
 	tree->setInputCloud(input_cloud);
 
 	pcl::EuclideanClusterExtraction<PointType> ec;
-	ec.setClusterTolerance(0.500);
+	ec.setClusterTolerance(0.300);
 	ec.setMinClusterSize(10);
 	ec.setMaxClusterSize(25000);
 	ec.setSearchMethod(tree);
 	ec.setInputCloud(input_cloud);
 	ec.extract(cluster_indices);
 
-	// std::vector<CloudType> clusters;
+	CloudType::Ptr cluster_cloud (new CloudType);
+	std::vector<CloudType> cluster_list;
 	for(std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin(); it != cluster_indices.end(); ++it){
 		for(std::vector<int>::const_iterator pit = it->indices.begin(); pit != it->indices.end(); ++pit){
 			cluster_cloud->points.push_back(input_cloud->points[*pit]);
 		}
 		cout<<"cluster_cloud->points.size() : "<<cluster_cloud->points.size()<<endl;
+		cluster_list.push_back(*cluster_cloud);
+	}
+	cout<<"cluster_list.size() : "<<cluster_list.size()<<endl;
+	
+	size_t cluster_list_size = cluster_list.size();
+	for(size_t i = 0; i < cluster_list_size; i++){
+		size_t cluster_cloud_size = cluster_list[i].points.size();
+		for(size_t j = 0; j < cluster_cloud_size; j++){
+			if(i == 0){
+				cluster_list[i].points[j].r = 255;
+				cluster_list[i].points[j].g = 0;
+				cluster_list[i].points[j].b = 0;
+			}
+			if(i == 1){
+				cluster_list[i].points[j].r = 0;
+				cluster_list[i].points[j].g = 255;
+				cluster_list[i].points[j].b = 0;
+			}
+			if(i == 2){
+				cluster_list[i].points[j].r = 0;
+				cluster_list[i].points[j].g = 0;
+				cluster_list[i].points[j].b = 255;
+			}
+			if(i == 3){
+				cluster_list[i].points[j].r = 0;
+				cluster_list[i].points[j].g = 0;
+				cluster_list[i].points[j].b = 0;
+			}
+			if(i == 4){
+				cluster_list[i].points[j].r = 255;
+				cluster_list[i].points[j].g = 255;
+				cluster_list[i].points[j].b = 255;
+			}
+
+		}
+	}
+	if(cluster_list_size > 0){
+		std::vector<pcl::PointXYZ> centroid_list;
+		centroid_list.resize(cluster_list_size);
+		for(size_t i = 0; i < cluster_list_size; i++){
+			pcl::PointXYZ centroid_point;
+			calculate_centroid(cluster_list[i], &centroid_point);
+			cout<<"centroid_point : "<<centroid_point<<endl;
+			centroid_list[i] = centroid_point;
+		}
+
+		float min_dist = calculate_distance_xy_plane(centroid_list[0]);
+		int min_index = 0;
+		size_t centroid_list_size = centroid_list.size();
+		for(size_t i = 1; i < centroid_list_size; i++){
+			float tmp_dist = calculate_distance_xy_plane(centroid_list[i]);
+			if(tmp_dist < min_dist){
+				min_dist = tmp_dist;
+				min_index = i;
+			}
+		}
+		cout<<"min_index : "<<min_index<<endl;
+		*output_cloud = cluster_list[min_index];
 	}
 }
 
@@ -57,8 +133,8 @@ void plane_removal(CloudType::Ptr input_cloud,
 	extract.setIndices(inliers);
 	extract.setNegative(true);
 	extract.filter(*output_cloud);
-	cout<<"PointCloud representing the planar component : "
-		<<output_cloud->width * output_cloud->height<<" data points."<<endl;
+	// cout<<"PointCloud representing the planar component : "
+		// <<output_cloud->width * output_cloud->height<<" data points."<<endl;
 }
 
 void plane_segmentation(CloudType::Ptr pointcloud, 
@@ -80,11 +156,11 @@ void plane_segmentation(CloudType::Ptr pointcloud,
 		return;
 	}
 
-	cout<<"Model coefficients : "<<coefficients->values[0]<<"\t"
-								 <<coefficients->values[1]<<"\t"
-								 <<coefficients->values[2]<<"\t"
-								 <<coefficients->values[3]<<endl;
-	cout<<"Model inliers : "<<inliers->indices.size()<<endl;
+	// cout<<"Model coefficients : "<<coefficients->values[0]<<"\t"
+								 // <<coefficients->values[1]<<"\t"
+								 // <<coefficients->values[2]<<"\t"
+								 // <<coefficients->values[3]<<endl;
+	// cout<<"Model inliers : "<<inliers->indices.size()<<endl;
 	size_t inliers_size = inliers->indices.size();
 	for(size_t i = 0;i < inliers_size; i++){
 		pointcloud->points[inliers->indices[i]].r = 255;
@@ -95,9 +171,10 @@ void plane_segmentation(CloudType::Ptr pointcloud,
 
 void humanPointsCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
 {
+	cout<<"====================================================="<<endl;
 	CloudType::Ptr pointcloud (new CloudType);
 	pcl::fromROSMsg(*msg, *pointcloud);
-	cout<<"pointcloud->points.size() : "<<pointcloud->points.size()<<endl;
+	// cout<<"pointcloud->points.size() : "<<pointcloud->points.size()<<endl;
 	
 	pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
 	pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
@@ -110,7 +187,7 @@ void humanPointsCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
 	CloudType::Ptr cluster_cloud (new CloudType);
 	cluster(removed_points, cluster_cloud, cluster_indices);
 
-	cout<<"cluster_indices.size() : "<<cluster_indices.size()<<endl;
+	// cout<<"cluster_indices.size() : "<<cluster_indices.size()<<endl;
 
 
 	sensor_msgs::PointCloud2 debug_pc;
