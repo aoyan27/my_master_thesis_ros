@@ -50,7 +50,7 @@ class image_converter:
         #  self.image_sub = rospy.Subscriber("/usb_cam/image_raw", Image, self.ImageCallback)
         self.image_sub = rospy.Subscriber("/zed/rgb/image_raw_color", Image, self.ImageCallback)
         
-        self.model_path = "/home/amsl/ros_catkin_ws/src/master_thesis/my_cv_bridge_tutorial/data/faster_rcnn/VGG16_faster_rcnn_final.model"
+        self.model_path = "/home/amsl/ros_catkin_ws/src/master_thesis/deep_learning_object_detection/data/faster_rcnn/VGG16_faster_rcnn_final.model"
 
         self.model = None
 

@@ -40,12 +40,12 @@ class image_converter:
     def __init__(self):
         self.image_pub = rospy.Publisher("/result_image", Image, queue_size=1)
         self.bbox_pub = rospy.Publisher("/bbox_array", Int32MultiArray, queue_size=1)
-        self.header_pub = rospy.Publisher("/image_header", Header, queue_size=1)
+        self.header_pub = rospy.Publisher("/zed/rgb/header/before_process", Header, queue_size=1)
         self.bridge = CvBridge()
         #  self.image_sub = rospy.Subscriber("/usb_cam/image_raw", Image, self.ImageCallback)
         self.image_sub = rospy.Subscriber("/zed/rgb/image_raw_color", Image, self.ImageCallback)
         
-        self.model_path = "/home/amsl/ros_catkin_ws/src/master_thesis/my_cv_bridge_tutorial/data/ssd/ssd.model"
+        self.model_path = "/home/amsl/ros_catkin_ws/src/master_thesis/deep_learning_object_detection/data/ssd/ssd.model"
 
         self.model = None
 
