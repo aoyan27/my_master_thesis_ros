@@ -26,15 +26,21 @@ using namespace pcl;
 
 string CAMERA_INFO_TOPIC;
 string VELODYNE_COLOR_TOPIC;
+string HUMAN_CANDIDATE_TOPIC;
+string IMAGE_HEADER_TOPIC;
+string BBOX_TOPIC;
 vector<float> DoF;
 
 cv::Mat projection_matrix;
+int image_width;
+int image_height;
 
-ros::Publisher pub_debug;
+ros::Publisher pub_human_candidate;
 
 std_msgs::Header img_header;
 
 vector<int> bbox_array;
+int expand_pixel = 150;
 
 bool bbox_flag = false;
 
@@ -63,6 +69,7 @@ void project(cv::Mat matrix, Rect frame, PointCloud<PointXYZRGB>::Ptr input, Poi
 		if (input->points[i].z < 0.0){
 			continue;
 		}
+
 		// cout<<"input->points["<<i<<"] : "<<input->points[i]<<endl;
 
 		cv::Point xy = cv_project(input->points[i], projection_matrix);
@@ -88,15 +95,33 @@ void transform_DoF(PointCloud<PointXYZRGB>::Ptr input, PointCloud<PointXYZRGB>::
 	transform(input, output, dof[0], dof[1], dof[2], dof[3], dof[4], dof[5]);
 }
 
+void expand_bbox(vector<int> &input)
+{
+	if(input[0]	> (0 + expand_pixel)){
+		input[0] -= expand_pixel;
+	}
+	if(input[1] > (0 + expand_pixel)){
+		input[1] -= expand_pixel;
+	}
+	if(input[2] < (image_width - expand_pixel)){
+		input[2] += expand_pixel;
+	}
+	if(input[3] < (image_height - expand_pixel)){
+		input[3] += expand_pixel;
+	}
+}
+
 void imageHeaderCallback(const std_msgs::HeaderConstPtr& msg){
 	// cout<<"msg : "<<msg<<endl;
 	img_header = *msg;
-	cout<<"img_header : "<<endl<<img_header<<endl;
+	// cout<<"img_header : "<<endl<<img_header<<endl;
 }
 
 void cameraInfoCallback(const sensor_msgs::CameraInfoConstPtr& msg)
 {
 	// cout<<"msg : "<<*msg<<endl;	
+	image_width = msg->width;
+	image_height = msg->height;
 	float p[12];
 	size_t P_size = 3 * 4;
 	for(size_t i=0; i<P_size; i++){
@@ -138,6 +163,8 @@ void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
 		vector<int> index;
 		// project(projection_matrix, Rect(0, 0, 1920, 1080), transformed, visible_points, &index);
 		cout<<"bbox_array[0] : "<<bbox_array[0]<<"\tbbox_array[1] : "<<bbox_array[1]<<"\tbbox_array[2] : "<<bbox_array[2]<<"\tbbox_array[3] : "<<bbox_array[3]<<endl;
+		expand_bbox(bbox_array);
+		cout<<"bbox_array[0](after) : "<<bbox_array[0]<<"\tbbox_array[1](after) : "<<bbox_array[1]<<"\tbbox_array[2](after) : "<<bbox_array[2]<<"\tbbox_array[3](after) : "<<bbox_array[3]<<endl;
 		project(projection_matrix, Rect(bbox_array[0], bbox_array[1], bbox_array[2] - bbox_array[0], bbox_array[3] - bbox_array[1]), transformed, visible_points, &index);
 		
 		// cout<<"visible_points->points.size() : "<<visible_points->points.size()<<endl;
@@ -146,17 +173,12 @@ void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
 		transform(visible_points, human_points, 0, 0, 0, -M_PI/2, 0, -M_PI/2);
 		cout<<"human_points->points.size() : "<<human_points->points.size()<<endl;
 
-
-		sensor_msgs::PointCloud2 debug_pc2;
-		// toROSMsg(*pointcloud, debug_pc2);
-		// toROSMsg(*transformed, debug_pc2);
-		// toROSMsg(*visible_points, debug_pc2);
-		toROSMsg(*human_points, debug_pc2);
-		debug_pc2.header = msg->header;
-		pub_debug.publish(debug_pc2);
-
-
+		sensor_msgs::PointCloud2 human_points_pc2;
+		toROSMsg(*human_points, human_points_pc2);
+		human_points_pc2.header = msg->header;
+		pub_human_candidate.publish(human_points_pc2);
 	}
+	
 	
 }
 
@@ -164,17 +186,21 @@ int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "human_points_extractor");
 	ros::NodeHandle n;
-	n.getParam("/but_calibration_camera_velodyne/camera_info_topic", CAMERA_INFO_TOPIC);
-	n.getParam("/but_calibration_camera_velodyne/velodyne_color_topic", VELODYNE_COLOR_TOPIC);
-	n.getParam("/but_calibration_camera_velodyne/6DoF", DoF);
+	n.getParam("/human_extract/camera_info_topic", CAMERA_INFO_TOPIC);
+	n.getParam("/human_extract/velodyne_color_topic", VELODYNE_COLOR_TOPIC);
+	n.getParam("/human_extract/human_points_candidate", HUMAN_CANDIDATE_TOPIC);
+	n.getParam("/human_extract/image_header_topic", IMAGE_HEADER_TOPIC);
+	n.getParam("/human_extract/bounding_box_topic", BBOX_TOPIC);
+	n.getParam("/human_extract/6DoF", DoF);
 
-	pub_debug = n.advertise<sensor_msgs::PointCloud2>("/human_points/debug", 1);
+
+	pub_human_candidate = n.advertise<sensor_msgs::PointCloud2>(HUMAN_CANDIDATE_TOPIC, 1);
 
 	ros::Subscriber sub_camerainfo = n.subscribe(CAMERA_INFO_TOPIC, 1, cameraInfoCallback);
 	ros::Subscriber sub_points = n.subscribe(VELODYNE_COLOR_TOPIC, 1, pointCloudCallback);
 
-	ros::Subscriber sub_header = n.subscribe("/image_header", 1, imageHeaderCallback);
-	ros::Subscriber sub_bbox = n.subscribe("/bbox_array", 1, bboxCallback);
+	ros::Subscriber sub_header = n.subscribe(IMAGE_HEADER_TOPIC, 1, imageHeaderCallback);
+	ros::Subscriber sub_bbox = n.subscribe(BBOX_TOPIC, 1, bboxCallback);
 
 	ros::spin();
 
