@@ -9,3 +9,4 @@ scripts/faster_rcnn/utils/*.pyc
 scripts/ssd/utils/*.pyc
 scripts/ssd/sample_image
 scripts/ssd/cv_and_skimage_test.py
+src/height_map/orig_src
