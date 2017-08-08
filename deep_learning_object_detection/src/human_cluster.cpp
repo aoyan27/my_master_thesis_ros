@@ -11,29 +11,61 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/extract_indices.h>
+#include <pcl/kdtree/kdtree.h>
+#include <pcl/segmentation/extract_clusters.h>
 
 using namespace std;
 
+// typedef pcl::PointXYZRGB PointType;
+typedef pcl::PointXYZRGBNormal PointType;
+typedef pcl::PointCloud<PointType> CloudType;
+
 ros::Publisher pub_debug;
 ros::Publisher pub_debug2;
+ros::Publisher pub_debug3;
 
-void plane_removal(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud,
-				  pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud,
+void cluster(CloudType::Ptr input_cloud,
+			 CloudType::Ptr cluster_cloud,
+			 std::vector<pcl::PointIndices> &cluster_indices)
+{
+	pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType>);
+	tree->setInputCloud(input_cloud);
+
+	pcl::EuclideanClusterExtraction<PointType> ec;
+	ec.setClusterTolerance(0.500);
+	ec.setMinClusterSize(10);
+	ec.setMaxClusterSize(25000);
+	ec.setSearchMethod(tree);
+	ec.setInputCloud(input_cloud);
+	ec.extract(cluster_indices);
+
+	// std::vector<CloudType> clusters;
+	for(std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin(); it != cluster_indices.end(); ++it){
+		for(std::vector<int>::const_iterator pit = it->indices.begin(); pit != it->indices.end(); ++pit){
+			cluster_cloud->points.push_back(input_cloud->points[*pit]);
+		}
+		cout<<"cluster_cloud->points.size() : "<<cluster_cloud->points.size()<<endl;
+	}
+}
+
+void plane_removal(CloudType::Ptr input_cloud,
+				  CloudType::Ptr output_cloud,
 				  pcl::PointIndices::Ptr inliers)
 {
-	pcl::ExtractIndices<pcl::PointXYZRGB> extract;
+	pcl::ExtractIndices<PointType> extract;
 	extract.setInputCloud(input_cloud);
 	extract.setIndices(inliers);
 	extract.setNegative(true);
 	extract.filter(*output_cloud);
-	cout<<"PointCloud representing the planar component : "<<output_cloud->width * output_cloud->height<<" data points."<<endl;
+	cout<<"PointCloud representing the planar component : "
+		<<output_cloud->width * output_cloud->height<<" data points."<<endl;
 }
 
-void plane_segmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointcloud, 
+void plane_segmentation(CloudType::Ptr pointcloud, 
 						pcl::ModelCoefficients::Ptr coefficients,
 						pcl::PointIndices::Ptr inliers)
 {
-	pcl::SACSegmentation<pcl::PointXYZRGB> seg;
+	pcl::SACSegmentation<PointType> seg;
 	seg.setOptimizeCoefficients(true);
 	seg.setModelType(pcl::SACMODEL_PLANE);
 	seg.setMethodType(pcl::SAC_RANSAC);
@@ -63,27 +95,38 @@ void plane_segmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointcloud,
 
 void humanPointsCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
 {
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointcloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+	CloudType::Ptr pointcloud (new CloudType);
 	pcl::fromROSMsg(*msg, *pointcloud);
 	cout<<"pointcloud->points.size() : "<<pointcloud->points.size()<<endl;
-
+	
 	pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
 	pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+	CloudType::Ptr removed_points (new CloudType);
+
 	plane_segmentation(pointcloud, coefficients, inliers);
+	plane_removal(pointcloud, removed_points, inliers);
+
+	std::vector<pcl::PointIndices> cluster_indices;
+	CloudType::Ptr cluster_cloud (new CloudType);
+	cluster(removed_points, cluster_cloud, cluster_indices);
+
+	cout<<"cluster_indices.size() : "<<cluster_indices.size()<<endl;
+
 
 	sensor_msgs::PointCloud2 debug_pc;
 	pcl::toROSMsg(*pointcloud, debug_pc);
 	debug_pc.header = msg->header;
 	pub_debug.publish(debug_pc);
 
-
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr removed_points (new pcl::PointCloud<pcl::PointXYZRGB>);
-	plane_removal(pointcloud, removed_points, inliers);
-
 	sensor_msgs::PointCloud2 debug_pc2;
 	pcl::toROSMsg(*removed_points, debug_pc2);
 	debug_pc2.header = msg->header;
 	pub_debug2.publish(debug_pc2);
+
+	sensor_msgs::PointCloud2 debug_pc3;
+	pcl::toROSMsg(*cluster_cloud, debug_pc3);
+	debug_pc3.header = msg->header;
+	pub_debug3.publish(debug_pc3);
 }
 
 
@@ -94,6 +137,7 @@ int main(int argc, char** argv)
 
 	pub_debug = n.advertise<sensor_msgs::PointCloud2>("/human_points/debug", 1);
 	pub_debug2 = n.advertise<sensor_msgs::PointCloud2>("/human_points/debug2", 1);
+	pub_debug3 = n.advertise<sensor_msgs::PointCloud2>("/human_points/debug3", 1);
 
 	ros::Subscriber sub_humanpoints = n.subscribe("/human_points/candidate", 1, humanPointsCallback);
 
