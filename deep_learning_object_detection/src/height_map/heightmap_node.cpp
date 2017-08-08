@@ -12,7 +12,7 @@
 */
 
 #include <ros/ros.h>
-#include <deep_learing_object_detection/heightmap.h>
+#include <velodyne_height_map/heightmap.h>
 
 /** Main entry point. */
 int main(int argc, char **argv)

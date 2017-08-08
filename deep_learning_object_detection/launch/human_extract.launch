@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+  <rosparam command="load" file="$(find deep_learning_object_detection)/conf/human_extract.yaml" />
+  <node pkg="deep_learning_object_detection" type="human_points_extractor" name="human_points_extractor" output="screen">
+  </node>
+</launch>
+

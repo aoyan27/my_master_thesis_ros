@@ -30,8 +30,10 @@ Publishes:
 
 */
 
-#include <deep_learing_object_detection/heightmap.h>
-
+#include <velodyne_height_map/heightmap.h>
+#include <iostream>
+#include <vector>
+using namespace std;
 namespace velodyne_height_map {
 
 #define MIN(x,y) ((x) < (y) ? (x) : (y))
@@ -40,10 +42,10 @@ namespace velodyne_height_map {
 HeightMap::HeightMap(ros::NodeHandle node, ros::NodeHandle priv_nh)
 {
   // get parameters using private node handle
-  priv_nh.param("cell_size", m_per_cell_, 0.5);
-  priv_nh.param("full_clouds", full_clouds_, false);
-  priv_nh.param("grid_dimensions", grid_dim_, 320);
-  priv_nh.param("height_threshold", height_diff_threshold_, 0.25);
+  priv_nh.param("cell_size", m_per_cell_, 0.1);
+  priv_nh.param("full_clouds", full_clouds_, true);
+  priv_nh.param("grid_dimensions", grid_dim_, 800);
+  priv_nh.param("height_threshold", height_diff_threshold_, 0.15);
   
   ROS_INFO_STREAM("height map parameters: "
                   << grid_dim_ << "x" << grid_dim_ << ", "
@@ -56,9 +58,10 @@ HeightMap::HeightMap(ros::NodeHandle node, ros::NodeHandle priv_nh)
   clear_publisher_ = node.advertise<VPointCloud>("velodyne_clear",1);  
 
   // subscribe to Velodyne data points
-  velodyne_scan_ = node.subscribe("velodyne_points", 10,
+  velodyne_scan_ = node.subscribe("/velodyne_points", 10,
                                   &HeightMap::processData, this,
                                   ros::TransportHints().tcpNoDelay(true));
+
 }
 
 HeightMap::~HeightMap() {}
@@ -67,47 +70,54 @@ void HeightMap::constructFullClouds(const VPointCloud::ConstPtr &scan,
                                     unsigned npoints, size_t &obs_count,
                                     size_t &empty_count)
 {
-  float min[grid_dim_][grid_dim_];
-  float max[grid_dim_][grid_dim_];
-  bool init[grid_dim_][grid_dim_];
-  memset(&init, 0, grid_dim_*grid_dim_);
-  
-  // build height map
-  for (unsigned i = 0; i < npoints; ++i) {
-    int x = ((grid_dim_/2)+scan->points[i].x/m_per_cell_);
-    int y = ((grid_dim_/2)+scan->points[i].y/m_per_cell_);
-    if (x >= 0 && x < grid_dim_ && y >= 0 && y < grid_dim_) {
-      if (!init[x][y]) {
-        min[x][y] = scan->points[i].z;
-        max[x][y] = scan->points[i].z;
-        init[x][y] = true;
-      } else {
-        min[x][y] = MIN(min[x][y], scan->points[i].z);
-        max[x][y] = MAX(max[x][y], scan->points[i].z);
-      }
-    }
-  }
+	float min[grid_dim_][grid_dim_];
+	float max[grid_dim_][grid_dim_];
+	bool init[grid_dim_][grid_dim_];
+	memset(&init, 0, grid_dim_*grid_dim_);
 
-  // display points where map has height-difference > threshold
-  for (unsigned i = 0; i < npoints; ++i) {
-    int x = ((grid_dim_/2)+scan->points[i].x/m_per_cell_);
-    int y = ((grid_dim_/2)+scan->points[i].y/m_per_cell_);
-    if (x >= 0 && x < grid_dim_ && y >= 0 && y < grid_dim_ && init[x][y]) {
-      if ((max[x][y] - min[x][y] > height_diff_threshold_) ) {   
-        obstacle_cloud_.points[obs_count].x = scan->points[i].x;
-        obstacle_cloud_.points[obs_count].y = scan->points[i].y;
-        obstacle_cloud_.points[obs_count].z = scan->points[i].z;
-        //obstacle_cloud_.channels[0].values[obs_count] = (float) scan->points[i].intensity;
-        obs_count++;
-      } else {
-        clear_cloud_.points[empty_count].x = scan->points[i].x;
-        clear_cloud_.points[empty_count].y = scan->points[i].y;
-        clear_cloud_.points[empty_count].z = scan->points[i].z;
-        //clear_cloud_.channels[0].values[empty_count] = (float) scan->points[i].intensity;
-        empty_count++;
-      }
-    }
-  }
+	// build height map
+	for (unsigned i = 0; i < npoints; ++i) {
+		int x = ((grid_dim_/2)+scan->points[i].x/m_per_cell_);
+		int y = ((grid_dim_/2)+scan->points[i].y/m_per_cell_);
+
+		if (x >= 0 && x < grid_dim_ && y >= 0 && y < grid_dim_) {
+			if (!init[x][y]) {
+				min[x][y] = scan->points[i].z;
+				max[x][y] = scan->points[i].z;
+
+				init[x][y] = true;
+			} 
+			else {
+				min[x][y] = MIN(min[x][y], scan->points[i].z);
+				max[x][y] = MAX(max[x][y], scan->points[i].z);
+			}
+		}
+	}
+
+	// display points where map has height-difference > threshold
+	for (unsigned i = 0; i < npoints; ++i) {
+		int x = ((grid_dim_/2)+scan->points[i].x/m_per_cell_);
+		int y = ((grid_dim_/2)+scan->points[i].y/m_per_cell_);
+
+		if (x >= 0 && x < grid_dim_ && y >= 0 && y < grid_dim_ && init[x][y]) {
+			if (scan->points[i].z <= 1.0) {
+				if ((max[x][y] - min[x][y] > height_diff_threshold_) && (max[x][y] - min[x][y] < 3.0) ) {   
+					obstacle_cloud_.points[obs_count].x = scan->points[i].x;
+					obstacle_cloud_.points[obs_count].y = scan->points[i].y;
+					obstacle_cloud_.points[obs_count].z = scan->points[i].z;
+					//obstacle_cloud_.channels[0].values[obs_count] = (float) scan->points[i].intensity;
+					obs_count++;
+				} 
+				else {
+					clear_cloud_.points[empty_count].x = scan->points[i].x;
+					clear_cloud_.points[empty_count].y = scan->points[i].y;
+					clear_cloud_.points[empty_count].z = scan->points[i].z;
+					//clear_cloud_.channels[0].values[empty_count] = (float) scan->points[i].intensity;
+					empty_count++;
+				}
+			}
+		}
+	}
 }
 
 void HeightMap::constructGridClouds(const VPointCloud::ConstPtr &scan,

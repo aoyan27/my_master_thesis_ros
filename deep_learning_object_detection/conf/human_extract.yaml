@@ -1,0 +1,8 @@
+human_extract:
+    camera_info_topic: /zed/rgb/camera_info
+    image_header_topic: /zed/rgb/header/before_process
+    velodyne_color_topic: /velodyne_colored_points
+    bounding_box_topic: /bbox_array
+    human_points_candidate: /human_points/candidate
+    6DoF: [0.0, 0.0, 0.0, 0, 0, 0]
+
