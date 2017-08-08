@@ -18,7 +18,8 @@
 namespace velodyne_height_map {
 
 // shorter names for point cloud types in this namespace
-typedef pcl::PointXYZINormal VPoint;
+// typedef pcl::PointXYZINormal VPoint;
+typedef pcl::PointXYZRGBNormal VPoint;
 typedef pcl::PointCloud<VPoint> VPointCloud;
 
 class HeightMap

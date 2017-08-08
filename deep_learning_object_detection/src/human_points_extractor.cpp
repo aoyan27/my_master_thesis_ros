@@ -24,6 +24,10 @@ using namespace std;
 using namespace cv;
 using namespace pcl;
 
+// typedef PointXYZRGB PointType;
+typedef PointXYZRGBNormal PointType;
+typedef PointCloud<PointType> CloudType;
+
 string CAMERA_INFO_TOPIC;
 string VELODYNE_COLOR_TOPIC;
 string HUMAN_CANDIDATE_TOPIC;
@@ -44,7 +48,7 @@ int expand_pixel = 150;
 
 bool bbox_flag = false;
 
-cv::Point cv_project(PointXYZRGB input, cv::Mat matrix){
+cv::Point cv_project(PointType input, cv::Mat matrix){
     cv::Mat pt_3D(4, 1, CV_32FC1);
 
     pt_3D.at<float>(0) = input.x;
@@ -61,7 +65,7 @@ cv::Point cv_project(PointXYZRGB input, cv::Mat matrix){
     return cv::Point2f(x, y);
 }
 
-void project(cv::Mat matrix, Rect frame, PointCloud<PointXYZRGB>::Ptr input, PointCloud<PointXYZRGB>::Ptr output, vector<int>* index){
+void project(cv::Mat matrix, Rect frame, CloudType::Ptr input, CloudType::Ptr output, vector<int>* index){
 	size_t input_size = input->points.size();
 	for (size_t i = 0; i < input_size; i++){
 		
@@ -83,14 +87,14 @@ void project(cv::Mat matrix, Rect frame, PointCloud<PointXYZRGB>::Ptr input, Poi
 	}
 }
 
-void transform(PointCloud<PointXYZRGB>::Ptr input, PointCloud<PointXYZRGB>::Ptr output, float x, float y, float z, float roll, float pitch, float yaw)
+void transform(CloudType::Ptr input, CloudType::Ptr output, float x, float y, float z, float roll, float pitch, float yaw)
 {
 	Eigen::Affine3f transform_matrix = getTransformation(x, y, z, roll, pitch, yaw);
 
 	transformPointCloud(*input, *output, transform_matrix);
 }
 
-void transform_DoF(PointCloud<PointXYZRGB>::Ptr input, PointCloud<PointXYZRGB>::Ptr output, vector<float> dof)
+void transform_DoF(CloudType::Ptr input, CloudType::Ptr output, vector<float> dof)
 {
 	transform(input, output, dof[0], dof[1], dof[2], dof[3], dof[4], dof[5]);
 }
@@ -147,19 +151,19 @@ void bboxCallback(const std_msgs::Int32MultiArrayConstPtr& msg)
 
 void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
 {
-	PointCloud<PointXYZRGB>::Ptr pcl_pc (new PointCloud<PointXYZRGB>);
+	CloudType::Ptr pcl_pc (new CloudType);
 	fromROSMsg(*msg, *pcl_pc);
 	
 	// cout<<"pcl_pc->points.size() : "<<pcl_pc->points.size()<<endl;
 
 	if(bbox_flag){
 		bbox_flag = false;
-		PointCloud<PointXYZRGB>::Ptr pointcloud (new PointCloud<PointXYZRGB>);
+		CloudType::Ptr pointcloud (new CloudType);
 		transform(pcl_pc, pointcloud, 0, 0, 0, M_PI/2, -M_PI/2, 0);
-		PointCloud<PointXYZRGB>::Ptr transformed (new PointCloud<PointXYZRGB>);
+		CloudType::Ptr transformed (new CloudType);
 		transform_DoF(pointcloud, transformed, DoF);
 		
-		PointCloud<PointXYZRGB>::Ptr visible_points (new PointCloud<PointXYZRGB>);
+		CloudType::Ptr visible_points (new CloudType);
 		vector<int> index;
 		// project(projection_matrix, Rect(0, 0, 1920, 1080), transformed, visible_points, &index);
 		cout<<"bbox_array[0] : "<<bbox_array[0]<<"\tbbox_array[1] : "<<bbox_array[1]<<"\tbbox_array[2] : "<<bbox_array[2]<<"\tbbox_array[3] : "<<bbox_array[3]<<endl;
@@ -169,7 +173,7 @@ void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
 		
 		// cout<<"visible_points->points.size() : "<<visible_points->points.size()<<endl;
 
-		PointCloud<PointXYZRGB>::Ptr human_points (new PointCloud<PointXYZRGB>);
+		CloudType::Ptr human_points (new CloudType);
 		transform(visible_points, human_points, 0, 0, 0, -M_PI/2, 0, -M_PI/2);
 		cout<<"human_points->points.size() : "<<human_points->points.size()<<endl;
 

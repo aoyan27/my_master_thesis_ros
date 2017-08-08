@@ -58,7 +58,7 @@ HeightMap::HeightMap(ros::NodeHandle node, ros::NodeHandle priv_nh)
   clear_publisher_ = node.advertise<VPointCloud>("velodyne_clear",1);  
 
   // subscribe to Velodyne data points
-  velodyne_scan_ = node.subscribe("/velodyne_points", 10,
+  velodyne_scan_ = node.subscribe("/perfect_velodyne/normal/colored", 10,
                                   &HeightMap::processData, this,
                                   ros::TransportHints().tcpNoDelay(true));
 
@@ -105,6 +105,12 @@ void HeightMap::constructFullClouds(const VPointCloud::ConstPtr &scan,
 					obstacle_cloud_.points[obs_count].x = scan->points[i].x;
 					obstacle_cloud_.points[obs_count].y = scan->points[i].y;
 					obstacle_cloud_.points[obs_count].z = scan->points[i].z;
+					obstacle_cloud_.points[obs_count].r = scan->points[i].r;
+					obstacle_cloud_.points[obs_count].g = scan->points[i].g;
+					obstacle_cloud_.points[obs_count].b = scan->points[i].b;
+					obstacle_cloud_.points[obs_count].normal_x = scan->points[i].normal_x;
+					obstacle_cloud_.points[obs_count].normal_y = scan->points[i].normal_y;
+					obstacle_cloud_.points[obs_count].normal_z = scan->points[i].normal_z;
 					//obstacle_cloud_.channels[0].values[obs_count] = (float) scan->points[i].intensity;
 					obs_count++;
 				} 
@@ -112,6 +118,12 @@ void HeightMap::constructFullClouds(const VPointCloud::ConstPtr &scan,
 					clear_cloud_.points[empty_count].x = scan->points[i].x;
 					clear_cloud_.points[empty_count].y = scan->points[i].y;
 					clear_cloud_.points[empty_count].z = scan->points[i].z;
+					clear_cloud_.points[obs_count].r = scan->points[i].r;
+					clear_cloud_.points[obs_count].g = scan->points[i].g;
+					clear_cloud_.points[obs_count].b = scan->points[i].b;
+					clear_cloud_.points[obs_count].normal_x = scan->points[i].normal_x;
+					clear_cloud_.points[obs_count].normal_y = scan->points[i].normal_y;
+					clear_cloud_.points[obs_count].normal_z = scan->points[i].normal_z;
 					//clear_cloud_.channels[0].values[empty_count] = (float) scan->points[i].intensity;
 					empty_count++;
 				}
