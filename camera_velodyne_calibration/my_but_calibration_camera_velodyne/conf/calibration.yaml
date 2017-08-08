@@ -4,5 +4,6 @@ but_calibration_camera_velodyne:
     camera_frame_topic: /zed/rgb/image_raw_color
     camera_info_topic: /zed/rgb/camera_info
     marker: {circles_distance: 0.46, circles_radius: 0.100}
-    velodyne_topic: /velodyne_points
+    # velodyne_topic: /velodyne_points
+    velodyne_topic: /velodyne_obstacles
 
