@@ -100,7 +100,7 @@ void HeightMap::constructFullClouds(const VPointCloud::ConstPtr &scan,
 		int y = ((grid_dim_/2)+scan->points[i].y/m_per_cell_);
 
 		if (x >= 0 && x < grid_dim_ && y >= 0 && y < grid_dim_ && init[x][y]) {
-			if (scan->points[i].z <= 1.0) {
+			if (scan->points[i].z <= 1.2) {
 				if ((max[x][y] - min[x][y] > height_diff_threshold_) && (max[x][y] - min[x][y] < 3.0) ) {   
 					obstacle_cloud_.points[obs_count].x = scan->points[i].x;
 					obstacle_cloud_.points[obs_count].y = scan->points[i].y;
