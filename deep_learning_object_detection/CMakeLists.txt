@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   tf
+  visualization_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -160,6 +161,7 @@ add_executable(human_cluster src/human_cluster.cpp)
 
 add_executable(heightmap_node src/height_map/heightmap_node.cpp src/height_map/heightmap.cpp)
 
+add_executable(normal_vector_visualizer src/normal_vector_visualizer.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -187,6 +189,11 @@ target_link_libraries(heightmap_node
 target_link_libraries(heightmap_nodelet
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+target_link_libraries(normal_vector_visualizer
+  ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
 )
 
