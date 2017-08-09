@@ -26,6 +26,8 @@ typedef pcl::PointCloud<PointType> CloudType;
 ros::Publisher pub_debug;
 ros::Publisher pub_debug2;
 ros::Publisher pub_debug3;
+ros::Publisher pub_debug4;
+ros::Publisher pub_human_points;
 
 float calculate_distance_xy_plane(pcl::PointXYZ input_point)
 {
@@ -41,64 +43,51 @@ void calculate_centroid(CloudType input_cloud, pcl::PointXYZ *centroid_point)
 	centroid_point->z = xyz_centroid[2];
 }
 
-void cluster(CloudType::Ptr input_cloud,
-			 CloudType::Ptr output_cloud,
-			 std::vector<pcl::PointIndices> &cluster_indices)
+void coloring_cluster(std::vector<CloudType> &cluster_list)
 {
-	pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType>);
-	tree->setInputCloud(input_cloud);
-
-	pcl::EuclideanClusterExtraction<PointType> ec;
-	ec.setClusterTolerance(0.300);
-	ec.setMinClusterSize(10);
-	ec.setMaxClusterSize(25000);
-	ec.setSearchMethod(tree);
-	ec.setInputCloud(input_cloud);
-	ec.extract(cluster_indices);
-
-	CloudType::Ptr cluster_cloud (new CloudType);
-	std::vector<CloudType> cluster_list;
-	for(std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin(); it != cluster_indices.end(); ++it){
-		for(std::vector<int>::const_iterator pit = it->indices.begin(); pit != it->indices.end(); ++pit){
-			cluster_cloud->points.push_back(input_cloud->points[*pit]);
-		}
-		cout<<"cluster_cloud->points.size() : "<<cluster_cloud->points.size()<<endl;
-		cluster_list.push_back(*cluster_cloud);
-	}
-	cout<<"cluster_list.size() : "<<cluster_list.size()<<endl;
-	
 	size_t cluster_list_size = cluster_list.size();
 	for(size_t i = 0; i < cluster_list_size; i++){
 		size_t cluster_cloud_size = cluster_list[i].points.size();
+		// cout<<"i : "<<i<<endl;
 		for(size_t j = 0; j < cluster_cloud_size; j++){
 			if(i == 0){
+				// cout<<"red"<<endl;
 				cluster_list[i].points[j].r = 255;
 				cluster_list[i].points[j].g = 0;
 				cluster_list[i].points[j].b = 0;
 			}
-			if(i == 1){
+			else if(i == 1){
+				// cout<<"green"<<endl;
 				cluster_list[i].points[j].r = 0;
 				cluster_list[i].points[j].g = 255;
 				cluster_list[i].points[j].b = 0;
 			}
-			if(i == 2){
+			else if(i == 2){
+				// cout<<"bule"<<endl;
 				cluster_list[i].points[j].r = 0;
 				cluster_list[i].points[j].g = 0;
 				cluster_list[i].points[j].b = 255;
 			}
-			if(i == 3){
+			else if(i == 3){
+				// cout<<"black"<<endl;
 				cluster_list[i].points[j].r = 0;
 				cluster_list[i].points[j].g = 0;
 				cluster_list[i].points[j].b = 0;
 			}
-			if(i == 4){
+			else{
+				// cout<<"white"<<endl;
 				cluster_list[i].points[j].r = 255;
 				cluster_list[i].points[j].g = 255;
 				cluster_list[i].points[j].b = 255;
 			}
-
 		}
 	}
+}
+
+void check_cluster_min_distance(std::vector<CloudType> cluster_list, 
+								CloudType::Ptr output_cloud)
+{
+	size_t cluster_list_size = cluster_list.size();
 	if(cluster_list_size > 0){
 		std::vector<pcl::PointXYZ> centroid_list;
 		centroid_list.resize(cluster_list_size);
@@ -122,6 +111,59 @@ void cluster(CloudType::Ptr input_cloud,
 		cout<<"min_index : "<<min_index<<endl;
 		*output_cloud = cluster_list[min_index];
 	}
+}
+
+void check_cluster_normal_vector(CloudType::Ptr single_cluster, 
+								 CloudType::Ptr output_cloud)
+{
+	for(size_t i = 0; i < single_cluster->points.size(); i++){
+		// cout<<"single_cluster->points["<<i<<"].normal_x : "<<single_cluster->points[i].normal_x<<endl;
+		// cout<<"single_cluster->points["<<i<<"].normal_y : "<<single_cluster->points[i].normal_y<<endl;
+		// cout<<"single_cluster->points["<<i<<"].normal_z : "<<single_cluster->points[i].normal_z<<endl<<endl;
+		if(single_cluster->points[i].normal_x < 1.0 && single_cluster->points[i].normal_y < 1.0){
+			output_cloud->points.push_back(single_cluster->points[i]);
+		}
+	}
+	// *output_cloud = *single_cluster;
+}
+
+void cluster(CloudType::Ptr input_cloud, 
+			 CloudType::Ptr multi_cluster,
+			 CloudType::Ptr single_cluster,
+			 CloudType::Ptr output_cloud,
+			 std::vector<pcl::PointIndices> &cluster_indices)
+{
+	pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType>);
+	tree->setInputCloud(input_cloud);
+
+	pcl::EuclideanClusterExtraction<PointType> ec;
+	ec.setClusterTolerance(0.300);
+	ec.setMinClusterSize(10);
+	ec.setMaxClusterSize(25000);
+	ec.setSearchMethod(tree);
+	ec.setInputCloud(input_cloud);
+	ec.extract(cluster_indices);
+
+	std::vector<CloudType> cluster_list;
+	for(std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin(); it != cluster_indices.end(); ++it){
+		CloudType::Ptr cluster_cloud (new CloudType);
+		for(std::vector<int>::const_iterator pit = it->indices.begin(); pit != it->indices.end(); ++pit){
+			cluster_cloud->points.push_back(input_cloud->points[*pit]);
+		}
+		cout<<"cluster_cloud->points.size() : "<<cluster_cloud->points.size()<<endl;
+		cluster_list.push_back(*cluster_cloud);
+	}
+	cout<<"cluster_list.size() : "<<cluster_list.size()<<endl;
+		
+	coloring_cluster(cluster_list);
+
+	for(size_t i = 0;i<cluster_list.size();i++){
+		*multi_cluster += cluster_list[i];
+	}
+	
+	check_cluster_min_distance(cluster_list, single_cluster);
+
+	check_cluster_normal_vector(single_cluster, output_cloud);
 }
 
 void plane_removal(CloudType::Ptr input_cloud,
@@ -184,26 +226,41 @@ void humanPointsCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
 	plane_removal(pointcloud, removed_points, inliers);
 
 	std::vector<pcl::PointIndices> cluster_indices;
+	CloudType::Ptr multi_cluster (new CloudType);
+	CloudType::Ptr single_cluster (new CloudType);
 	CloudType::Ptr cluster_cloud (new CloudType);
-	cluster(removed_points, cluster_cloud, cluster_indices);
-
-	// cout<<"cluster_indices.size() : "<<cluster_indices.size()<<endl;
+	cluster(removed_points, multi_cluster, single_cluster, cluster_cloud, cluster_indices);
 
 
+	//plane segmentation (plane is segmented red color)
 	sensor_msgs::PointCloud2 debug_pc;
 	pcl::toROSMsg(*pointcloud, debug_pc);
 	debug_pc.header = msg->header;
 	pub_debug.publish(debug_pc);
 
+	//plane extracted
 	sensor_msgs::PointCloud2 debug_pc2;
 	pcl::toROSMsg(*removed_points, debug_pc2);
 	debug_pc2.header = msg->header;
 	pub_debug2.publish(debug_pc2);
 
+	//multiple clusters are colored in red, green, bule, black and white
 	sensor_msgs::PointCloud2 debug_pc3;
-	pcl::toROSMsg(*cluster_cloud, debug_pc3);
+	pcl::toROSMsg(*multi_cluster, debug_pc3);
 	debug_pc3.header = msg->header;
 	pub_debug3.publish(debug_pc3);
+
+	//single cluster(extracted by distance from LiDAR)
+	sensor_msgs::PointCloud2 debug_pc4;
+	pcl::toROSMsg(*single_cluster, debug_pc4);
+	debug_pc4.header = msg->header;
+	pub_debug4.publish(debug_pc4);
+
+	//single cluster(extracted by normal vector) <--- for now, human clustering is completed
+	sensor_msgs::PointCloud2 human_points_pc2;
+	pcl::toROSMsg(*cluster_cloud, human_points_pc2);
+	human_points_pc2.header = msg->header;
+	pub_human_points.publish(human_points_pc2);
 }
 
 
@@ -215,6 +272,8 @@ int main(int argc, char** argv)
 	pub_debug = n.advertise<sensor_msgs::PointCloud2>("/human_points/debug", 1);
 	pub_debug2 = n.advertise<sensor_msgs::PointCloud2>("/human_points/debug2", 1);
 	pub_debug3 = n.advertise<sensor_msgs::PointCloud2>("/human_points/debug3", 1);
+	pub_debug4 = n.advertise<sensor_msgs::PointCloud2>("/human_points/debug4", 1);
+	pub_human_points = n.advertise<sensor_msgs::PointCloud2>("/human_points", 1);
 
 	ros::Subscriber sub_humanpoints = n.subscribe("/human_points/candidate", 1, humanPointsCallback);
 
