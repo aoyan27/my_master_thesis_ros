@@ -173,14 +173,14 @@ void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
 		
 		// cout<<"visible_points->points.size() : "<<visible_points->points.size()<<endl;
 
-		CloudType::Ptr human_points (new CloudType);
-		transform(visible_points, human_points, 0, 0, 0, -M_PI/2, 0, -M_PI/2);
-		cout<<"human_points->points.size() : "<<human_points->points.size()<<endl;
+		CloudType::Ptr human_points_candidate (new CloudType);
+		transform(visible_points, human_points_candidate, 0, 0, 0, -M_PI/2, 0, -M_PI/2);
+		cout<<"human_points_candidate->points.size() : "<<human_points_candidate->points.size()<<endl;
 
-		sensor_msgs::PointCloud2 human_points_pc2;
-		toROSMsg(*human_points, human_points_pc2);
-		human_points_pc2.header = msg->header;
-		pub_human_candidate.publish(human_points_pc2);
+		sensor_msgs::PointCloud2 human_points_candidate_pc2;
+		toROSMsg(*human_points_candidate, human_points_candidate_pc2);
+		human_points_candidate_pc2.header = msg->header;
+		pub_human_candidate.publish(human_points_candidate_pc2);
 	}
 	
 	
