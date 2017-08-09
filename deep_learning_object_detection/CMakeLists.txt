@@ -161,6 +161,7 @@ add_executable(human_cluster src/human_cluster.cpp)
 
 add_executable(heightmap_node src/height_map/heightmap_node.cpp src/height_map/heightmap.cpp)
 
+add_executable(bounding_box_visualizer src/bounding_box_visualizer.cpp)
 add_executable(normal_vector_visualizer src/normal_vector_visualizer.cpp)
 
 ## Add cmake target dependencies of the executable
@@ -192,6 +193,11 @@ target_link_libraries(heightmap_nodelet
   ${PCL_LIBRARIES}
 )
 
+
+target_link_libraries(bounding_box_visualizer
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
 target_link_libraries(normal_vector_visualizer
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
