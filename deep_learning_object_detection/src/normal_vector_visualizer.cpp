@@ -60,7 +60,7 @@ void create_normal_arrows(CloudType::Ptr input_cloud, std_msgs::Header marker_he
 	cout<<"Now create marker!!"<<endl;	
 	size_t input_cloud_size = input_cloud->points.size();
 	for(size_t i = 0; i < input_cloud_size; i++){
-		marker.id = i;
+		marker.id = i;	//id変えないと上書きされていくよ！！
 		marker.pose.position.x = input_cloud->points[i].x;
 		marker.pose.position.y = input_cloud->points[i].y;
 		marker.pose.position.z = input_cloud->points[i].z;
@@ -72,9 +72,9 @@ void create_normal_arrows(CloudType::Ptr input_cloud, std_msgs::Header marker_he
 		calculate_orientation(input_cloud->points[i], marker.pose.orientation);
 
 		// if(i%3==0){
-			marker.color.r = 255;
-			marker.color.g = 255;
-			marker.color.b = 255;
+			marker.color.r = 1.0;
+			marker.color.g = 1.0;
+			marker.color.b = 1.0;
 			marker.color.a = 1.0;
 			marker_array.markers.push_back(marker);
 		// }
