@@ -28,13 +28,14 @@ ros::Publisher pub_debug2;
 ros::Publisher pub_debug3;
 ros::Publisher pub_debug4;
 ros::Publisher pub_human_points;
+ros::Publisher pub_centroid_cloud;
 
-float calculate_distance_xy_plane(pcl::PointXYZ input_point)
+float calculate_distance_xy_plane(PointType input_point)
 {
 	return sqrt(pow(input_point.x, 2.0) + pow(input_point.y, 2.0));
 }
 
-void calculate_centroid(CloudType input_cloud, pcl::PointXYZ *centroid_point)
+void calculate_centroid(CloudType input_cloud, PointType *centroid_point)
 {
 	Eigen::Vector4f xyz_centroid(0.0, 0.0, 0.0, 0.0);
 	pcl::compute3DCentroid(input_cloud, xyz_centroid);
@@ -89,10 +90,10 @@ void check_cluster_min_distance(std::vector<CloudType> cluster_list,
 {
 	size_t cluster_list_size = cluster_list.size();
 	if(cluster_list_size > 0){
-		std::vector<pcl::PointXYZ> centroid_list;
+		std::vector<PointType> centroid_list;
 		centroid_list.resize(cluster_list_size);
 		for(size_t i = 0; i < cluster_list_size; i++){
-			pcl::PointXYZ centroid_point;
+			PointType centroid_point;
 			calculate_centroid(cluster_list[i], &centroid_point);
 			cout<<"centroid_point : "<<centroid_point<<endl;
 			centroid_list[i] = centroid_point;
@@ -229,7 +230,21 @@ void humanPointsCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
 	CloudType::Ptr multi_cluster (new CloudType);
 	CloudType::Ptr single_cluster (new CloudType);
 	CloudType::Ptr cluster_cloud (new CloudType);
-	cluster(removed_points, multi_cluster, single_cluster, cluster_cloud, cluster_indices);
+	// cluster(removed_points, multi_cluster, single_cluster, cluster_cloud, cluster_indices);
+	cluster(pointcloud, multi_cluster, single_cluster, cluster_cloud, cluster_indices);
+
+
+	// calculate human cluster centroid
+	PointType centroid;
+	calculate_centroid(*cluster_cloud, &centroid);
+	// cout<<"centroid : "<<centroid<<endl;
+	CloudType::Ptr centroid_cloud (new CloudType);
+	centroid_cloud->points.push_back(centroid);
+	
+	sensor_msgs::PointCloud2 centroid_cloud_pc2;
+	pcl::toROSMsg(*centroid_cloud, centroid_cloud_pc2);
+	centroid_cloud_pc2.header = msg->header;
+	pub_centroid_cloud.publish(centroid_cloud_pc2);
 
 
 	//plane segmentation (plane is segmented red color)
@@ -274,6 +289,7 @@ int main(int argc, char** argv)
 	pub_debug3 = n.advertise<sensor_msgs::PointCloud2>("/human_points/debug3", 1);
 	pub_debug4 = n.advertise<sensor_msgs::PointCloud2>("/human_points/debug4", 1);
 	pub_human_points = n.advertise<sensor_msgs::PointCloud2>("/human_points", 1);
+	pub_centroid_cloud = n.advertise<sensor_msgs::PointCloud2>("/human_points/centroid", 1);
 
 	ros::Subscriber sub_humanpoints = n.subscribe("/human_points/candidate", 1, humanPointsCallback);
 
