@@ -49,6 +49,7 @@ $ catkin_make
 
 - ZED
 	- Downlowd the ZED SDK on [stereolabs.com](https://www.stereolabs.com/developers/release/2.1/#sdkdownloads_anchor) and setup the ZED SDK
+
 **NOTE: Please see the details [ZED Documentation](https://www.stereolabs.com/documentation/overview/getting-started/introduction.html).**
 	- Download zed-ros-wrapper
 	```
