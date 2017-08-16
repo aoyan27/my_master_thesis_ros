@@ -156,15 +156,15 @@ add_library(heightmap_nodelet
 
 ## Declare a C++ executable
 # add_executable(deep_learing_object_detection_node src/deep_learing_object_detection_node.cpp)
-add_executable(human_points_extractor src/human_points_extractor.cpp)
-add_executable(human_cluster src/human_cluster.cpp)
+add_executable(human_points_extractor src/clustering/human_points_extractor.cpp)
+add_executable(human_cluster src/clustering/human_cluster.cpp)
+add_executable(bounding_box_visualizer src/clustering/bounding_box_visualizer.cpp)
 
 add_executable(normal_estimation_refine_smoothing_colored src/normal_estimation/normal_estimation_refine_smoothing_colored.cpp)
 add_executable(normal_vector_visualizer src/normal_estimation/normal_vector_visualizer.cpp)
 
 add_executable(heightmap_node src/height_map/heightmap_node.cpp src/height_map/heightmap.cpp)
 
-add_executable(bounding_box_visualizer src/bounding_box_visualizer.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -179,6 +179,10 @@ target_link_libraries(human_points_extractor
   ${PCL_LIBRARIES}
 )
 target_link_libraries(human_cluster
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+target_link_libraries(bounding_box_visualizer
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
 )
@@ -206,10 +210,6 @@ target_link_libraries(heightmap_nodelet
 )
 
 
-target_link_libraries(bounding_box_visualizer
-  ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}
-)
 
 #############
 ## Install ##
