@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <std_msgs/Header.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <geometry_msgs/Point.h>
 #include <geometry_msgs/Quaternion.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
@@ -21,55 +22,63 @@ typedef pcl::PointCloud<PointType> CloudType;
 
 ros::Publisher pub_normal_arrows;
 
-float arrow_scale = 0.1;
+float arrow_scale = 0.01;
 
 float vector_norm(float x, float y, float z)
 {
 	return pow((x * x + y * y + z * z), 0.5);
 }
 
-void calculate_orientation(PointType point, geometry_msgs::Quaternion &quat)
-{
-	float roll, pitch, yaw;
-	float norm = vector_norm(point.normal_x, point.normal_y, point.normal_z);
-	roll = acos(point.normal_x / norm);
-	pitch = acos(point.normal_y / norm);
-	yaw = acos(point.normal_z / norm);
+// void calculate_orientation(PointType point, geometry_msgs::Quaternion &quat)
+// {
+	// cout<<"normal_x : "<<point.normal_x<<endl;
+	// cout<<"normal_y : "<<point.normal_y<<endl;
+	// cout<<"normal_z : "<<point.normal_z<<endl;
+	// float roll, pitch, yaw;
+	// float norm = vector_norm(point.normal_x, point.normal_y, point.normal_z);
+	// cout<<"norma : "<<norm<<endl;
+	// roll = acos(point.normal_x / norm);
+	// pitch = acos(point.normal_y / norm);
+	// yaw = acos(point.normal_z / norm);
 	// cout<<"roll : "<<roll<<"\tpitch : "<<pitch<<"\tyaw : "<<yaw<<endl;
 
-	quat = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, yaw);
-	// cout<<"quat : "<<quat<<endl;
-}
+	// quat = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, yaw);
+	// // cout<<"quat : "<<quat<<endl;
+// }
 
 void create_normal_arrows(CloudType::Ptr input_cloud, std_msgs::Header marker_header, visualization_msgs::MarkerArray &marker_array)
 {
-	visualization_msgs::Marker marker;
-	marker.header = marker_header;
-	marker.ns = "normal_vectors";
-
-	marker.type = visualization_msgs::Marker::ARROW;
-	marker.action = visualization_msgs::Marker::ADD;
-
-	marker.scale.x = 1.0 * arrow_scale;
-	marker.scale.y = 0.1 * arrow_scale;
-	marker.scale.z = 0.1 * arrow_scale;
-
-	// marker.lifetime = ros::Duration(0.1);
-	marker.lifetime = ros::Duration();
-
 	cout<<"Now create marker!!"<<endl;	
 	size_t input_cloud_size = input_cloud->points.size();
 	for(size_t i = 0; i < input_cloud_size; i++){
-		marker.id = i;	//id変えないと上書きされていくよ！！
-		marker.pose.position.x = input_cloud->points[i].x;
-		marker.pose.position.y = input_cloud->points[i].y;
-		marker.pose.position.z = input_cloud->points[i].z;
-		marker.pose.orientation.x = 0.0;
-		marker.pose.orientation.y = 0.0;
-		marker.pose.orientation.x = 0.0;
-		marker.pose.orientation.w = 1.0;
+		visualization_msgs::Marker marker;
+		marker.header = marker_header;
+		marker.ns = "normal_vectors";
 
-		calculate_orientation(input_cloud->points[i], marker.pose.orientation);
+		marker.type = visualization_msgs::Marker::ARROW;
+		marker.action = visualization_msgs::Marker::ADD;
+
+		marker.scale.x = 1.0 * arrow_scale;
+		marker.scale.y = 2.0 * arrow_scale;
+		// marker.scale.z = 0.1 * arrow_scale;
+
+		marker.lifetime = ros::Duration(0.1);
+		// marker.lifetime = ros::Duration();
+
+		marker.points.resize(2);
+
+		marker.id = i;	//id変えないと上書きされていくよ！！
+		geometry_msgs::Point p1;
+		p1.x = input_cloud->points[i].x;
+		p1.y = input_cloud->points[i].y;
+		p1.z = input_cloud->points[i].z;
+		marker.points[0] = p1;
+
+		geometry_msgs::Point p2;
+		p2.x = input_cloud->points[i].x - 0.1 * input_cloud->points[i].normal_x;
+		p2.y = input_cloud->points[i].y - 0.1 * input_cloud->points[i].normal_y;
+		p2.z = input_cloud->points[i].z - 0.1 * input_cloud->points[i].normal_z;
+		marker.points[1] = p2;
 
 		// if(i%3==0){
 			marker.color.r = 1.0;
