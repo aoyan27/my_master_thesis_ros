@@ -2,7 +2,7 @@
 In this repository, I compiled the source code using ROS for the master thesis.
 ## Overview
 ### camera_velodyne_calibration
-#### camera_velodyne_calibration_gazebo
+#### \dot camera_velodyne_calibration_gazebo
 Gazebo enviroment(model and controller.etc) for calibtation.
 #### my_but_calibration_camera_velodyne
 Calibtation camera(ZED) and Velodyne, make minor revisions in [but_calibration_camera_velodyne](https://github.com/robofit/but_velodyne.git)
