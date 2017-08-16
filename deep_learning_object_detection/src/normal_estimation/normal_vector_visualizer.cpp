@@ -46,7 +46,9 @@ float vector_norm(float x, float y, float z)
 	// // cout<<"quat : "<<quat<<endl;
 // }
 
-void create_normal_arrows(CloudType::Ptr input_cloud, std_msgs::Header marker_header, visualization_msgs::MarkerArray &marker_array)
+void create_normal_arrows(CloudType::Ptr input_cloud, 
+						  std_msgs::Header marker_header, 
+						  visualization_msgs::MarkerArray &marker_array)
 {
 	cout<<"Now create marker!!"<<endl;	
 	size_t input_cloud_size = input_cloud->points.size();
