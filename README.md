@@ -148,12 +148,23 @@ $ sudo make install
 **NOTE: Please see the details [ZED Documentation](https://www.stereolabs.com/documentation/overview/getting-started/introduction.html).**
 
 ## How to Build
+### C++ 
 ```
 $ cd $HOME
 $ cd ros_catkin_ws/src
 $ git clone https://github.com/aoyan27/my_master_thesis_ros master_thetis/
 $ cd ../
 $ catkin_make
+```
+
+### Cython
+```
+$ cd $HOME
+$ cd ros_catkin_ws/src/master_thesis/deep_leaning_object_detection/scripts/faster_rcnn/utils/
+$ python setup.py build_ext --inplace
+$ cd ../../ssd/utils/
+$ python setup.py build_ext --inplace
+
 ```
 
 ## Preperation for the execution
