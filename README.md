@@ -1,10 +1,25 @@
 # my_master_thesis_ros
 In this repository, I compiled the source code using ROS for the master thesis.
+## Overview
+### camera_velodyne_calibration
+####camera_velodyne_calibration_gazebo
+Gazebo enviroment(model and controller.etc) for calibtation.
+#### my_but_calibration_camera_velodyne
+Calibtation camera(ZED) and Velodyne, make minor revisions in [but_calibration_camera_velodyne](https://github.com/robofit/but_velodyne.git)
 
-- camera_velodyne_calibration
-	- camera_velodyne_calibration_gazebo
-	- my_but_calibration_camera_velodyne
-- deep_learning_object_recognition
+### deep_learning_object_recognition
+#### Faster-RCNN
+Make minor revisions in [chainer-faster-rcnn](https://github.com/mitmul/chainer-faster-rcnn.git), so that it can handle RGB-image from ZED.
+#### SSD
+Make minor revisions in [chainer-SSD](https://github.com/ninhydrin/chainer-SSD.git), so that it can handle RGB-image from ZED.
+#### Normal estimation for Velodyne
+Normal estimation for the point cloud of velodyne. This code is created by the senior in my laboratory.
+#### Height Map
+Based on [velodyne_height_map](https://github.com/jack-oquin/velodyne_height_map.git). Added "head-cut part".
+#### Clustering
+Cluster the point cloud of Velodyne by the recognition result obtained from the camera.(PCL based clustering)
+#### EKF
+Three-dimensional recognition of human trajectory from clustering result.
 
 ## Hardware Spec
 - PC
@@ -146,15 +161,15 @@ $ catkin_make
 Under review
 
 ### Estimate human trajectory
-- deep_leaning_object_detection
-	- my_faster_rcnn_with_ros.py
-		This code needs pre-trained model.
-		- Download pre-trained model
-		```
-		$ cd $HOME
-		$ cd ros_catkin_ws/src/master_thesis/deep_leaning_object_detection/data/faster_rcnn
-		$ curl https://dl.dropboxusercontent.com/u/2498135/faster-rcnn/VGG16_faster_rcnn_final.model?dl=1 -o VGG16_faster_rcnn_final.model
-		```
+#### deep_leaning_object_detection
+##### my_faster_rcnn_with_ros.py
+This code needs pre-trained model.
+- Download pre-trained model
+	```
+	$ cd $HOME
+	$ cd ros_catkin_ws/src/master_thesis/deep_leaning_object_detection/data/faster_rcnn
+	$ curl https://dl.dropboxusercontent.com/u/2498135/faster-rcnn/VGG16_faster_rcnn_final.model?dl=1 -o VGG16_faster_rcnn_final.model
+	```
 
 ## How to run
 ### Calibrate Camera and Velodyne
