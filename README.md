@@ -29,7 +29,7 @@ In this repository, I compiled the source code using ROS for the master thesis.
 - OpenCV 2.4+, 3.1+
 - PCL 1.7+, 1.8+
 
-## How to setup
+## How to setup dependencies
 ### Install ROS indigo for Ubuntu 14.04
 ```
 $ sudo apt-get install ros-indigo-desktop-full
@@ -45,7 +45,7 @@ $ sudo apt-get install ros-indigo-desktop-full
 		$ sudo apt install cuda
 		```
 - Install cuDNN 5.1
-	- Download cuDNN 5.1 on [developper.nvidia.com/cidnn](https://developer.nvidia.com/rdp/cudnn-download) and run the following command
+	- Download cuDNN 5.1 on [developper.nvidia.com/cudnn](https://developer.nvidia.com/rdp/cudnn-download) and run the following command
 		```
 		tar xzvf cudnn-8.0-linux-x64-v5.1.tgz 
 		sudo cp -a cuda/lib64/* /usr/local/cuda/lib64/
@@ -132,9 +132,34 @@ $ sudo make install
 		```
 **NOTE: Please see the details [ZED Documentation](https://www.stereolabs.com/documentation/overview/getting-started/introduction.html).**
 
+## How to Build
+```
+$ cd $HOME
+$ cd ros_catkin_ws/src
+$ git clone https://github.com/aoyan27/my_master_thesis_ros master_thetis/
+$ cd ../
+$ catkin_make
+```
+
+## Preperation for the execution
+### Calibrate camera and Velodyne
+Under review
+
+### Estimate human trajectory
+- deep_leaning_object_detection
+	- my_faster_rcnn_with_ros.py
+		This code needs pre-trained model.
+		- Download pre-trained model
+		```
+		$ cd $HOME
+		$ cd ros_catkin_ws/src/master_thesis/deep_leaning_object_detection/data/faster_rcnn
+		$ curl https://dl.dropboxusercontent.com/u/2498135/faster-rcnn/VGG16_faster_rcnn_final.model?dl=1 -o VGG16_faster_rcnn_final.model
+		```
 
 ## How to run
-- Calibrate Camera and Velodyne
+### Calibrate Camera and Velodyne
+Under review
 
-- Estimate human trajectory
+### Estimate human trajectory
+
 
