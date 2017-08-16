@@ -23,7 +23,7 @@ In this repository, I compiled the source code using ROS for the master thesis.
 
 ## Hardware Spec
 - PC
-	- OS : Ubuntu 14.04 LTS
+	- OS : Ubuntu 14.04
 	- Memory : 32GB
 	- CPU : Intel® Core™ i7-4790K CPU @ 4.00GHz × 8 
 	- GPU : GeForce GTX TITAN X
