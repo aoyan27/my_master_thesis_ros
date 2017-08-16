@@ -32,7 +32,7 @@ In this repository, I compiled the source code using ROS for the master thesis.
 
 ## How to setup
 ### Install ROS indigo for Ubuntu 14.04
-````
+```
 $ sudo apt-get install ros-indigo-desktop-full
 ```
 **NOTE: Reference [Install ROS indigo](http://wiki.ros.org/ja/indigo/Installation/Ubuntu).**
