@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-	<node pkg="perfect_velodyne" type="normal_estimation_refine_smoothing_colored" name="NormalEstimationForVelodyne" output="screen" />
+	<node pkg="deep_learning_object_detection" type="normal_estimation_refine_smoothing_colored" name="NormalEstimationForVelodyne" output="screen" />
 		<param name="HNN" value="3l" />
 		<param name="MAX_RANGE" value="120.0f" />
 		<param name="MIN_RANGE" value="2.2f" />
