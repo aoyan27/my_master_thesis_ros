@@ -1,5 +1,5 @@
 # my_master_thesis_ros
-In this repository, I compiled the source code using ROS created for the master thesis.
+In this repository, I compiled the source code using ROS for the master thesis.
 
 - camera_velodyne_calibration
 	- camera_velodyne_calibration_gazebo
@@ -29,6 +29,34 @@ In this repository, I compiled the source code using ROS created for the master 
 - OpenCV 2.4+, 3.1+
 - CUDA 7.5+
 - PCL 1.7+, 1.8+
+
+## How to setup
+### Install ROS indigo for Ubuntu 14.04
+'''
+$ sudo apt-get install ros-indigo-desktop-full
+'''
+**NOTE: Reference [Install ROS indigo](http://wiki.ros.org/ja/indigo/Installation/Ubuntu) **
+
+### Setup sensors
+- HDR-32e
+'''
+$ cd $HOME
+$ cd ros_catkin_ws/src
+$ git clone https://github.com/ros-drivers/velodyne
+$ cd ../
+$ catkin_make
+'''
+
+- ZED
+	- Downlowd the ZED SDK on [stereolabs.com](https://www.stereolabs.com/developers/release/2.1/#sdkdownloads_anchor) and setup the ZED SDK**NOTE: Reference [ZED Documentation](https://www.stereolabs.com/documentation/overview/getting-started/introduction.html) **
+	- Download zed-ros-wrapper
+	'''
+	$ cd $HOME
+	$ cd ros_catkin_ws/src
+	$ git clone https://github.com/stereolabs/zed-ros-wrapper
+	$ cd ../
+	$ catkin_make
+	'''
 
 ## How to run
 - Calibrate Camera and Velodyne
