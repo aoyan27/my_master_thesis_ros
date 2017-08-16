@@ -2,7 +2,7 @@
 In this repository, I compiled the source code using ROS for the master thesis.
 ## Overview
 ### camera_velodyne_calibration
-####camera_velodyne_calibration_gazebo
+#### camera_velodyne_calibration_gazebo
 Gazebo enviroment(model and controller.etc) for calibtation.
 #### my_but_calibration_camera_velodyne
 Calibtation camera(ZED) and Velodyne, make minor revisions in [but_calibration_camera_velodyne](https://github.com/robofit/but_velodyne.git)
@@ -160,7 +160,7 @@ $ catkin_make
 ### Calibrate camera and Velodyne
 Under review
 
-### Estimate human trajectory
+### Recognize human trajectory
 #### deep_leaning_object_detection
 ##### my_faster_rcnn_with_ros.py
 This code needs pre-trained model.
@@ -175,6 +175,28 @@ This code needs pre-trained model.
 ### Calibrate Camera and Velodyne
 Under review
 
-### Estimate human trajectory
+### Recognize human trajectory
+```
+$ roslaunch velodyne_pointcloud 32e_points.launch
+$ rosrun image_transport republish compressed in:=/zed/rgb/image_raw_color raw out:=/zed/rgb/image_raw_color
+```
 
+```
+$ roslauch deep_learning_object_detection normal_estimation_colored.launch
+$ roslaunch my_but_calibration_camera_velodyne coloring.launch
+$ rosrun deep_learning_object_detection heightmap_node
+```
 
+```
+$ rosrun deep_learning_object_detection my_ssd_with_ros.py --gpu 0
+```
+
+```
+$ roslaunch deep_learning_object_detection human_extract.launch
+$ rosrun deep_learning_object_detection human_cluster
+```
+
+```
+$ rosrun deep_learning_object_detection normal_vector_visualizer
+$ rosrun deep_learning_object_detection bounding_box_visualizer
+```
