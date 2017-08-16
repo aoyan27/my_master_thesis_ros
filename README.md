@@ -35,7 +35,7 @@ In this repository, I compiled the source code using ROS for the master thesis.
 ```
 $ sudo apt-get install ros-indigo-desktop-full
 ```
-**NOTE: Reference [Install ROS indigo](http://wiki.ros.org/ja/indigo/Installation/Ubuntu).**
+**NOTE: Please see the details [Install ROS indigo](http://wiki.ros.org/ja/indigo/Installation/Ubuntu).**
 
 ### Setup sensors
 - HDR-32e
@@ -49,7 +49,7 @@ $ catkin_make
 
 - ZED
 	- Downlowd the ZED SDK on [stereolabs.com](https://www.stereolabs.com/developers/release/2.1/#sdkdownloads_anchor) and setup the ZED SDK
-**NOTE: Reference [ZED Documentation](https://www.stereolabs.com/documentation/overview/getting-started/introduction.html).**
+**NOTE: Please see the details [ZED Documentation](https://www.stereolabs.com/documentation/overview/getting-started/introduction.html).**
 	- Download zed-ros-wrapper
 	```
 	$ cd $HOME
