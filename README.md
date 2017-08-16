@@ -32,31 +32,32 @@ In this repository, I compiled the source code using ROS for the master thesis.
 
 ## How to setup
 ### Install ROS indigo for Ubuntu 14.04
-'''
+````
 $ sudo apt-get install ros-indigo-desktop-full
-'''
-**NOTE: Reference [Install ROS indigo](http://wiki.ros.org/ja/indigo/Installation/Ubuntu) **
+```
+**NOTE: Reference [Install ROS indigo](http://wiki.ros.org/ja/indigo/Installation/Ubuntu).**
 
 ### Setup sensors
 - HDR-32e
-'''
+```
 $ cd $HOME
 $ cd ros_catkin_ws/src
 $ git clone https://github.com/ros-drivers/velodyne
 $ cd ../
 $ catkin_make
-'''
+```
 
 - ZED
-	- Downlowd the ZED SDK on [stereolabs.com](https://www.stereolabs.com/developers/release/2.1/#sdkdownloads_anchor) and setup the ZED SDK**NOTE: Reference [ZED Documentation](https://www.stereolabs.com/documentation/overview/getting-started/introduction.html) **
+	- Downlowd the ZED SDK on [stereolabs.com](https://www.stereolabs.com/developers/release/2.1/#sdkdownloads_anchor) and setup the ZED SDK
+**NOTE: Reference [ZED Documentation](https://www.stereolabs.com/documentation/overview/getting-started/introduction.html).**
 	- Download zed-ros-wrapper
-	'''
+	```
 	$ cd $HOME
 	$ cd ros_catkin_ws/src
 	$ git clone https://github.com/stereolabs/zed-ros-wrapper
 	$ cd ../
 	$ catkin_make
-	'''
+	```
 
 ## How to run
 - Calibrate Camera and Velodyne
