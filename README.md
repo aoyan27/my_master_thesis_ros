@@ -2,12 +2,12 @@
 In this repository, I compiled the source code using ROS for the master thesis.
 ## Overview
 ### camera\_velodyne\_calibration
-#### camera_velodyne_calibration_gazebo
+#### camera\_velodyne\_calibration\_gazebo
 - Gazebo enviroment(model and controller.etc) for calibtation.
-#### my_but_calibration_camera_velodyne
-- Calibtation camera(ZED) and Velodyne, make minor revisions in [but_calibration_camera_velodyne](https://github.com/robofit/but_velodyne.git)
+#### my\_but\_calibration\_camera\_velodyne
+- Calibtation camera(ZED) and Velodyne, make minor revisions in [but\_calibration\_camera\_velodyne](https://github.com/robofit/but_velodyne.git)
 
-### deep_learning_object_recognition
+### deep\_learning\_object\_recognition
 #### Faster-RCNN
 - Make minor revisions in [chainer-faster-rcnn](https://github.com/mitmul/chainer-faster-rcnn.git), so that it can handle RGB-image from ZED.
 #### SSD
@@ -15,7 +15,7 @@ In this repository, I compiled the source code using ROS for the master thesis.
 #### Normal estimation for Velodyne
 - Normal estimation for the point cloud of velodyne. This code is created by the senior in my laboratory.
 #### Height Map
-- Based on [velodyne_height_map](https://github.com/jack-oquin/velodyne_height_map.git). Added "head-cut part".
+- Based on [velodyne\_height\_map](https://github.com/jack-oquin/velodyne_height_map.git). Added "head-cut part".
 #### Clustering
 - Cluster the point cloud of Velodyne by the recognition result obtained from the camera.(PCL based clustering)
 #### EKF
@@ -172,8 +172,8 @@ $ python setup.py build_ext --inplace
 Under review
 
 ### Recognize human trajectory
-#### deep_leaning_object_detection
-##### my_faster_rcnn_with_ros.py
+#### deep\_leaning\_object\_detection
+##### my\_faster\_rcnn\_with\_ros.py
 This code needs pre-trained model.
 - Download pre-trained model
 	```
