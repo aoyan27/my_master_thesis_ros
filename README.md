@@ -54,14 +54,14 @@ $ sudo apt-get install ros-indigo-desktop-full
 
 ### Install CUDA and cuDNN
 - Install CUDA
-	- Download CUDA 8.0 deb file(local) on [developer.nvidia.com/cuda](https://developer.nvidia.com/cuda-downloads) and run the following command
+	- Download CUDA 8.0 deb file(local) on [developer.nvidia.com(CUDA)](https://developer.nvidia.com/cuda-downloads) and run the following command
 		```
 		$ sudo dpkg -i cuda-repo-ubuntu1604_8.0.*_amd64.deb
 		$ sudo apt update
 		$ sudo apt install cuda
 		```
 - Install cuDNN 5.1
-	- Download cuDNN 5.1 on [developper.nvidia.com/cudnn](https://developer.nvidia.com/rdp/cudnn-download) and run the following command
+	- Download cuDNN 5.1 on [developper.nvidia.com(cudnn)](https://developer.nvidia.com/rdp/cudnn-download) and run the following command
 		```
 		tar xzvf cudnn-8.0-linux-x64-v5.1.tgz 
 		sudo cp -a cuda/lib64/* /usr/local/cuda/lib64/
