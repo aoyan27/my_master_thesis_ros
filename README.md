@@ -1,5 +1,6 @@
 # my\_master\_thesis\_ros
 In this repository, I compiled the source code using ROS for the master thesis.
+
 ## Overview
 ### camera\_velodyne\_calibration
 #### camera\_velodyne\_calibration\_gazebo
@@ -41,8 +42,8 @@ In this repository, I compiled the source code using ROS for the master thesis.
 - ROS indigo(Ubuntu 14.04)
 - CUDA 7.5+
 - [Chainer](https://github.com/pfnet/chainer) 2.0.0+
-- OpenCV 2.4+, 3.1+
-- PCL 1.7+, 1.8+
+- [OpenCV](http://opencv.org/) 2.4+, 3.1+
+- [PCL](http://pointclouds.org/) 1.7+, 1.8+
 
 ## How to setup dependencies
 ### Install ROS indigo for Ubuntu 14.04
