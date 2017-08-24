@@ -35,7 +35,7 @@ In this repository, I compiled the source code using ROS for the master thesis.
 		- ZED(Stereolabs)
 		- HDL-32e(Velodyne)
 		- AMU-1802BR(IMU)
-	- Vehcle
+	- Vehicle
 		- Differential drive
 
 ## Requirements
