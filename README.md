@@ -96,7 +96,12 @@ pip install cupy
 pip install cython
 pip install chainer
 ```
-**NOTE: Please see the details [chainer install guide](https://docs.chainer.org/en/v2.0.0/install.html) and [cupy install guide](https://docs-cupy.chainer.org/en/stable/install.html).**
+In addition, install [scikit-image](http://scikit-image.org/) for machine learning, 
+```
+pip install scikit-image
+```
+**NOTE: Please see the details [chainer install guide](https://docs.chainer.org/en/v2.0.0/install.html), [cupy install guide](https://docs-cupy.chainer.org/en/stable/install.html) and [scikit-image install guide](http://scikit-image.org/docs/stable/install.html).**
+
 ### Install PCL 1.8.0
 ```
 $ cd $HOME
@@ -194,7 +199,7 @@ $ rosrun image_transport republish compressed in:=/zed/rgb/image_raw_color raw o
 ```
 
 ```
-$ roslauch deep_learning_object_detection normal_estimation_colored.launch
+$ roslaunch deep_learning_object_detection normal_estimation_colored.launch
 $ roslaunch my_but_calibration_camera_velodyne coloring.launch
 $ rosrun deep_learning_object_detection heightmap_node
 ```
