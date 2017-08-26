@@ -158,7 +158,7 @@ $ sudo make install
 ```
 $ cd $HOME
 $ cd ros_catkin_ws/src
-$ git clone https://github.com/aoyan27/my_master_thesis_ros master_thetis/
+$ git clone https://github.com/aoyan27/my_master_thesis_ros master_thesis/
 $ cd ../
 $ catkin_make
 ```
