@@ -216,4 +216,5 @@ $ rosrun deep_learning_object_detection human_cluster
 ```
 $ rosrun deep_learning_object_detection normal_vector_visualizer
 $ rosrun deep_learning_object_detection bounding_box_visualizer
+$ rosrun deep_learning_object_detection trajectory_visualizer
 ```
