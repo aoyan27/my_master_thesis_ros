@@ -157,6 +157,8 @@ add_library(heightmap_nodelet
 
 ## Declare a C++ executable
 # add_executable(deep_learing_object_detection_node src/deep_learing_object_detection_node.cpp)
+add_executable(trajectory_visualizer src/trajectory/trajectory_visualizer.cpp)
+
 add_executable(human_points_extractor src/clustering/human_points_extractor.cpp)
 add_executable(human_cluster src/clustering/human_cluster.cpp)
 add_executable(bounding_box_visualizer src/clustering/bounding_box_visualizer.cpp)
@@ -175,6 +177,12 @@ add_executable(heightmap_node src/height_map/heightmap_node.cpp src/height_map/h
 # target_link_libraries(deep_learing_object_detection_node
 #   ${catkin_LIBRARIES}
 # )
+target_link_libraries(trajectory_visualizer
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+
 target_link_libraries(human_points_extractor
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
