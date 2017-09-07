@@ -1,0 +1,12 @@
+/NormalEstimationForVelodyne
+/bounding_box_visualizer
+/cloud_nodelet
+/coloring
+/driver_nodelet
+/heightmap_node
+/human_points_extractor
+/image_republisher_1504779395634684606
+/my_sdd_with_ros
+/rosout
+/trajectory_visualizer
+/velodyne_nodelet_manager
