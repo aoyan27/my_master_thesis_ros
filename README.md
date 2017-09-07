@@ -194,6 +194,12 @@ Under review
 
 ### Recognize human trajectory
 ```
+$ cd $HOME
+$ cd ros_catkin_ws/src/master_thesis/scripts
+$ ./run.sh
+```
+or
+```
 $ roslaunch velodyne_pointcloud 32e_points.launch
 $ rosrun image_transport republish compressed in:=/zed/rgb/image_raw_color raw out:=/zed/rgb/image_raw_color
 ```
