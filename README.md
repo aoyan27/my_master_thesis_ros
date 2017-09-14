@@ -132,7 +132,7 @@ $ sudo make install
 ```
 
 ### Setup sensors
-- HDR-32e
+- HDL-32e
 	```
 	$ cd $HOME
 	$ cd ros_catkin_ws/src
