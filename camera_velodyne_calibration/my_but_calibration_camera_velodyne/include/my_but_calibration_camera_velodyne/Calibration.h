@@ -12,6 +12,8 @@
 #include <my_but_calibration_camera_velodyne/Velodyne.h>
 #include <my_but_calibration_camera_velodyne/Similarity.h>
 
+using namespace std;
+
 namespace but_calibration_camera_velodyne
 {
 
