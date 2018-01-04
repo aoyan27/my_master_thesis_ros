@@ -68,8 +68,7 @@ class InputDataGenerator:
         image = copy.deepcopy(grid_data)
 
         index = np.where(image == 100)
-        for i in xrange(len(index[0])):
-            image[index[0][i], index[1][i]] = 1
+        image[index] = 1
         #  print image
         image = image.astype(np.uint8)
 
@@ -393,7 +392,7 @@ class ValueIterationNetworkAgent:
             vis_path[tuple(state_list[i])] = '*'
             if tuple(state_list[i]) == local_goal_index:
                 vis_path[tuple(local_goal_index)] = 'G'
-        vis_path[int(grid_image.shape[0]/2), int(grid_image.shape[1]/2)] = '$'
+        vis_path[state_data[0][0], state_data[0][1]] = '$'
 
         path_data = {}
         path_data['vis_path'] = vis_path
@@ -420,6 +419,7 @@ def main(model_path, gpu):
     agent = ValueIterationNetworkAgent(model_path, gpu)
     
     input_data = None
+    #  state = [10, 6]
     state = np.asarray(map(lambda x: x / 2, list(idg.input_image_size)), dtype=np.int32)
     state_data = np.expand_dims(state, 0)
     #  print "state_data : ", state_data
