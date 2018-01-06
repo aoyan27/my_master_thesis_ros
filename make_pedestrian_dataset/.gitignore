@@ -1,0 +1,10 @@
+*.bak
+*.pyc
+*.npy
+*.model
+*.npz
+*.pkl
+*.jpg
+/scripts/test
+/datasets
+!.gitkeep
