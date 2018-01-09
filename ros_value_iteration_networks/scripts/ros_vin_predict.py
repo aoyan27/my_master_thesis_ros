@@ -427,7 +427,7 @@ def main(model_path, gpu):
     loop_rate = rospy.Rate(20)
 
     while not rospy.is_shutdown():
-        if idg.gridmap_sub_flag and idg.local_goal_sub_flag:
+        if idg.gridmap_sub_flag and idg.local_goal_sub_flag and idg.grid_image is not None:
             print "*****************************************"
             idg.cvt_input_data()
             #  print "idg.input_data"
