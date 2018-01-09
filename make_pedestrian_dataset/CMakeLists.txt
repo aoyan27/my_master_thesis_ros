@@ -149,6 +149,8 @@ add_definitions(${PCL_DEFINITIONS})
 # add_executable(make_pedestrian_dataset_node src/make_pedestrian_dataset_node.cpp)
 add_executable(calculation_trajectories src/calculation_trajectories.cpp)
 
+add_executable(velodyne_range_constraint src/velodyne_range_constraint.cpp)
+
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(make_pedestrian_dataset_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -162,6 +164,11 @@ target_link_libraries(calculation_trajectories
   ${PCL_LIBRARIES}
 )
 
+target_link_libraries(velodyne_range_constraint
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
 #############
 ## Install ##
 #############
@@ -171,10 +178,10 @@ target_link_libraries(calculation_trajectories
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-# install(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+install(PROGRAMS
+  scripts/make_pedestrians_datasets.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark executables and/or libraries for installation
 # install(TARGETS make_pedestrian_dataset make_pedestrian_dataset_node
