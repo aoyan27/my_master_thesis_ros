@@ -1,23 +1,41 @@
 #!/usr/bin/env python
 #coding:utf-8
 
+import argparse
+
 import rospy
 from std_msgs.msg import Header, ColorRGBA
 from sensor_msgs.msg import PointCloud, PointCloud2
 from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion
-from nav_msgs.msg import Odometry, Path
+from nav_msgs.msg import Odometry, Path, OccupancyGrid
 from visualization_msgs.msg import MarkerArray, Marker
 import tf
 
 import numpy as np
 
+import sys
+import os
 import copy
 import math
+from datetime import *
 
-class CalculationTrajectory:
+import pickle
+
+parser = argparse.ArgumentParser(description='This script is make_pedestrian_dataset(raw)...')
+
+parser.add_argument('-l', '--locate', default='test', type=str, \
+        help='Please set location parameter')
+
+args = parser.parse_args()
+print args
+
+
+class CreateDatasetLocalMapTrajectory:
     def __init__(self):
         self.track_vel_sub = \
             rospy.Subscriber("/kalman_filter/human_velocity", MarkerArray, self.velocityCallback)
+        self.local_map_real_sub = \
+            rospy.Subscriber("/local_map_real", OccupancyGrid, self.localMapCallback)
         
         self.view_trajs_pub = rospy.Publisher("/view_trajs", MarkerArray, queue_size=1)
         self.vis_view_trajs_pub = rospy.Publisher("/view_trajs/vis", MarkerArray, queue_size=1)
@@ -36,6 +54,27 @@ class CalculationTrajectory:
                  #  ColorRGBA(r=1.0, g=1.0, b=0.0, a=1.0), ColorRGBA(r=1.0, g=0.0, b=1.0, a=1.0), \
                  #  ColorRGBA(r=0.0, g=1.0, b=1.0, a=1.0), ColorRGBA(r=0.5, g=0.5, b=0.0, a=1.0), \
                  #  ColorRGBA(r=0.5, g=0.0, b=0.5, a=1.0), ColorRGBA(r=0.0, g=0.5, b=0.5, a=1.0)]
+        self.file_path \
+            = "/home/amsl/ros_catkin_ws/src/master_thesis/make_pedestrian_dataset/datasets/raw/"
+        self.abs_path = None
+        self.date = datetime.now().strftime('%Y_%m_%d')
+        #  print "date : ", date
+        if not os.path.exists(self.file_path+self.date):
+            os.makedirs(self.file_path+self.date)
+        if not os.path.exists(self.file_path+self.date+"/"+args.locate):
+            os.makedirs(self.file_path+self.date+"/"+args.locate)
+
+        if len(os.listdir(self.file_path+self.date+"/"+args.locate)) != 0:
+            sys.stderr.write('\033[31mError!! This directory already has some files!!\033[0m\n')
+            sys.exit(1)
+        else:
+            self.abs_path = self.file_path + self.date + "/" + args.locate + "/"
+        print "self.abs_path : ", self.abs_path
+
+
+        self.local_map_and_trajectories_data = {}
+
+        self.scenario_count = 0
 
         self.trajectories = MarkerArray()
         self.trajectories.markers = [Marker() for i in xrange(len(self.color_list))]
@@ -49,7 +88,7 @@ class CalculationTrajectory:
         self.velocity_threshold = 5.0    #  歩行者としての速度の上限
 
         self.callback_count = 0    #  データセット作成する時間を計るをためのパラメータ(30秒保存)
-        #  self.run_time_threshold = 9.0 / self.dt
+        #  self.run_time_threshold = 1.0 / self.dt
         self.run_time_threshold = 10.0 / self.dt
         #  self.run_time_threshold = 20.0 / self.dt
         
@@ -84,24 +123,51 @@ class CalculationTrajectory:
                 = [0 for j in xrange(len(self.color_list))]
         
         self.trajs_no_update_count_list = [0 for j in xrange(len(self.color_list))]
+       
 
-    def reset_trajectories(self, human_trajs):
-        del self.trajectories.markers[:]
-        self.trajectories.markers = [Marker() for i in xrange(len(self.color_list))]
 
-        self.trajs_candidate_list = [[] for i in xrange(len(self.color_list))]
-        self.trajs_candidate_velocity_vector_list = [[] for i in xrange(len(self.color_list))]
-        
-        for i in xrange(len(self.trajectories.markers)):
-            self.trajectories.markers[i].type = Marker.LINE_STRIP
-            self.trajectories.markers[i].action = Marker.ADD
-            self.trajectories.markers[i].scale.x = 0.30
-            self.trajectories.markers[i].lifetime = rospy.Duration(0.1)
+        self.grid_map_list = []
+        self.grid_map = None
+        self.local_map_flag = False
 
+
+    def save_dataset(self, data, filename):
+        print "Now Saving!!!"
+        print "File : ", filename
+        with open(filename, mode='wb') as f:
+            pickle.dump(data, f)
+
+
+    def localMapCallback(self, msg):
+        print "========================== localMapCallback ================================"
+        self.local_map_flag = True
+        cell_size = msg.info.resolution
+        rows = msg.info.height
+        cols = msg.info.width
+        map_data = msg.data
+
+        self.grid_map = np.asarray(map_data).reshape((rows, cols))
+        #  print "grid_map : "
+        #  print self.grid_map
+        #  self.show_grid_map(self.grid_map)
+
+    def show_grid_map(self, grid_map):
+        if not grid_map.ndim == 2:
+            rospy.logerr('Error occurred!! Check grid dimentions!!')
+        else:
+            vis_grid_map = copy.deepcopy(grid_map)
+
+            index = np.where(vis_grid_map == 100)
+            vis_grid_map[index] = 1
+            for row in vis_grid_map:
+                print "|",
+                for i in row:
+                    print "%2d" % i,
+                print "|"
         
 
     def velocityCallback(self, msg):
-        print "================================================================================="
+        print "========================== velocityCallback ================================"
         #  #  print "msg : ", msg
         #  #  print len(msg.markers)
         if len(msg.markers) == 0:
@@ -121,42 +187,81 @@ class CalculationTrajectory:
                     = [0 for j in xrange(len(self.color_list))]
 
             self.trajs_no_update_count_list = [0 for j in xrange(len(self.color_list))]
+            
+
+            self.grid_map_list = []
         else:
-            self.human_exist = True
-            self.callback_count += 1
-
-            if self.callback_count <= self.run_time_threshold:
-                print "################## Creating datasets ######################"
-                print "############ Run Time : %.3f [s] ########" % (self.callback_count*self.dt)
+            if self.local_map_flag:
+                self.human_exist = True
+                self.callback_count += 1
                 
-                temp_trajs_length_list = self.view_trajectories(msg)
-                
-                #  temp_flag_list = np.array(temp_trajs_length_list) \
-                        #  < np.array([20 for i in xrange(len(self.color_list))])
-                #  if temp_flag_list.all():
-                    #  print "********* Reset!! **************"
-                    #  self.callback_count = 0
+                print "self.callback_count : ", self.callback_count
+                if self.callback_count <= self.run_time_threshold:
+                    print "################## Creating datasets ######################"
+                    print "############ Run Time : %.3f [s] ########" \
+                            % (self.callback_count*self.dt)
+                    
+                    temp_trajs_length_list = self.create_trajectories(msg)
+                    self.grid_map_list.append(self.grid_map)
+                    print "len(self.grid_map_list) : ", len(self.grid_map_list)
+                    
+                    #  temp_flag_list = np.array(temp_trajs_length_list) \
+                            #  < np.array([20 for i in xrange(len(self.color_list))])
+                    #  if temp_flag_list.all():
+                        #  print "********* Reset!! **************"
+                        #  self.callback_count = 0
 
-            else:
-                print "################ Finish creating datasets ###############"
-                print "***************** Reset ********************"
-                print "##### Break Time : %.3f [s] ####" % (self.callback_count_break*self.dt)
-                self.callback_count_break += 1
+                else:
+                    print "################ Finish creating datasets ###############"
+                    print "***************** Reset ********************"
+                    print "##### Break Time : %.3f [s] ####" % (self.callback_count_break*self.dt)
+                    self.callback_count_break += 1
 
-                self.reset_trajectories(msg)
-                self.trajs_length_list = [0 for i in xrange(len(self.color_list))]
-                self.trajs_velocity_vector_list = [[] for i in xrange(len(self.color_list))]
-                self.trajs_velocity_vector_length_list = [0 for j in xrange(len(self.color_list))]
+                    self.reset_trajectories(msg)
+                    self.trajs_length_list = [0 for i in xrange(len(self.color_list))]
+                    self.trajs_velocity_vector_list = [[] for i in xrange(len(self.color_list))]
+                    self.trajs_velocity_vector_length_list \
+                            = [0 for j in xrange(len(self.color_list))]
 
-                self.trajs_candidate_length_list = [0 for j in xrange(len(self.color_list))]
-                self.trajs_candidate_velocity_vector_length_list \
-                        = [0 for j in xrange(len(self.color_list))]
+                    self.trajs_candidate_length_list = [0 for j in xrange(len(self.color_list))]
+                    self.trajs_candidate_velocity_vector_length_list \
+                            = [0 for j in xrange(len(self.color_list))]
 
-                self.trajs_no_update_count_list = [0 for j in xrange(len(self.color_list))]
+                    self.trajs_no_update_count_list = [0 for j in xrange(len(self.color_list))]
 
-                if self.callback_count_break > self.break_time_threshold:
-                    self.callback_count_break = 0
-                    self.callback_count = 0
+                    self.grid_map_list = []
+
+
+                    if self.callback_count_break > self.break_time_threshold:
+                        self.scenario_count += 1
+                        self.local_map_and_trajectories_data['map'] = self.grid_map_list
+                        self.local_map_and_trajectories_data['traj'] = self.trajectories
+                        #  print "datetime.now() : ", datetime.now().strftime('%Y/%m/%d %H:%M:%S')
+
+                        date_time = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+                        #  print "date_time : ", date_time
+
+                        filename = self.abs_path +  "%s_scenario_%d_raw_dataset.pkl" \
+                                % (date_time, self.scenario_count)
+                        print "filename : ", filename
+                        self.save_dataset(self.local_map_and_trajectories_data, filename)
+                        
+
+                        self.callback_count_break = 0
+                        self.callback_count = 0
+
+    def reset_trajectories(self, human_trajs):
+        del self.trajectories.markers[:]
+        self.trajectories.markers = [Marker() for i in xrange(len(self.color_list))]
+
+        self.trajs_candidate_list = [[] for i in xrange(len(self.color_list))]
+        self.trajs_candidate_velocity_vector_list = [[] for i in xrange(len(self.color_list))]
+        
+        for i in xrange(len(self.trajectories.markers)):
+            self.trajectories.markers[i].type = Marker.LINE_STRIP
+            self.trajectories.markers[i].action = Marker.ADD
+            self.trajectories.markers[i].scale.x = 0.30
+            self.trajectories.markers[i].lifetime = rospy.Duration(0.1)
     
     def calc_predict_position(self, before_position, before_velocity_vector, dt):
         q = (before_velocity_vector[1].x, before_velocity_vector[1].y, \
@@ -177,7 +282,7 @@ class CalculationTrajectory:
     def calc_dist(self, a, b):
         return math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2 + (a.z-b.z)**2)
 
-    def view_trajectories(self, human_trajs):
+    def create_trajectories(self, human_trajs):
         num_humans = len(human_trajs.markers)
         #  print "num_humans : ", num_humans
         if num_humans >= len(self.color_list):
@@ -258,7 +363,7 @@ class CalculationTrajectory:
                                 #  print predict_position
                                 #  print "position : "
                                 #  print position
-                                #  print "dist(pred) : ", self.calc_dist(predict_position, position)
+                                #  print "dist : ", self.calc_dist(predict_position, position)
                                 
                                 #  dist_list[j] = self.calc_dist(before_position, position)
                                 dist_list[j] = self.calc_dist(predict_position, position)
@@ -328,7 +433,7 @@ class CalculationTrajectory:
                                 #  print predict_position
                                 #  print "position : "
                                 #  print position
-                                #  print "dist(pred) : ", self.calc_dist(predict_position, position)
+                                #  print "dist : ", self.calc_dist(predict_position, position)
                                 
                                 #  dist_list[j] = self.calc_dist(before_position, position)
                                 dist_list[j] = self.calc_dist(predict_position, position)
@@ -455,7 +560,7 @@ class CalculationTrajectory:
 
 
 def main():
-    ct = CalculationTrajectory()
+    cdlt = CreateDatasetLocalMapTrajectory()
 
     rospy.init_node("make_pedestrian_datasets")
     print "Here we go!!!!"
