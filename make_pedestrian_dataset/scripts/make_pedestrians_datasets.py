@@ -173,6 +173,20 @@ class CreateDatasetLocalMapTrajectory:
         if len(msg.markers) == 0:
             print "!!!!!!!!!!!!!!!!!!! No pedestrians !!!!!!!!!!!!!!!!!!!!!!!!"
             print "************************ Reset *************************"
+            if self.human_exist:
+                self.scenario_count += 1
+                self.local_map_and_trajectories_data['map'] = self.grid_map_list
+                self.local_map_and_trajectories_data['traj'] = self.trajectories
+                #  print "datetime.now() : ", datetime.now().strftime('%Y/%m/%d %H:%M:%S')
+
+                date_time = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+                #  print "date_time : ", date_time
+
+                filename = self.abs_path +  "%s_scenario_%d_raw_dataset.pkl" \
+                        % (date_time, self.scenario_count)
+                print "filename : ", filename
+                self.save_dataset(self.local_map_and_trajectories_data, filename)
+
             self.human_exist = False
             self.callback_count = 0
             self.callback_count_break = 0
