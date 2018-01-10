@@ -16,7 +16,12 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(cmake_modules)
+
 find_package(PCL 1.8.0 REQUIRED)
+
+find_package(Eigen3 REQUIRED COMPONENTS system)
+include_directories(${Eigen_INCLUDE_DIRS})
 
 find_package(OpenMP)
 if (OPENMP_FOUND)
@@ -151,6 +156,8 @@ add_executable(calculation_trajectories src/calculation_trajectories.cpp)
 
 add_executable(velodyne_range_constraint src/velodyne_range_constraint.cpp)
 
+add_executable(pc2local_map_dataset src/pc2local_map_dataset.cpp)
+
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(make_pedestrian_dataset_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -165,6 +172,11 @@ target_link_libraries(calculation_trajectories
 )
 
 target_link_libraries(velodyne_range_constraint
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+target_link_libraries(pc2local_map_dataset
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
 )
