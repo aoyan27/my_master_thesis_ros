@@ -15,6 +15,14 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(cmake_modules)
+find_package(PCL 1.8.0 REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
+
+find_package(Eigen3 REQUIRED COMPONENTS system)
+include_directories(${Eigen_INCLUDE_DIRS})
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -131,16 +139,16 @@ include_directories(
 # add_dependencies(ros_value_iteration_networks ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(ros_value_iteration_networks_node src/ros_value_iteration_networks_node.cpp)
+add_executable(pc2local_map_for_vin src/pc2local_map_for_vin.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(ros_value_iteration_networks_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(ros_value_iteration_networks_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(pc2local_map_for_vin
+  ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##
