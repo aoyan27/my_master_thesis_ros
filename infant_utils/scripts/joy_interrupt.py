@@ -14,6 +14,7 @@ class JoyInterrupt:
 
         self.cmd_vel_pub = rospy.Publisher("/tinypower/command_velocity", Velocity, queue_size=1)
         
+        self.cmd_ = Velocity()
         self.cmd_vel_joy = Velocity()
         self.joy_mode = False
 
@@ -26,21 +27,25 @@ class JoyInterrupt:
             self.joy_mode = True
         elif msg.buttons[14] == 1:
             self.joy_mode = False
-
-
             
 
     def cmdCallback(self, msg):
         if not self.joy_mode:
-            self.cmd_vel_pub.publish(msg)
+            self.cmd_ = msg
         else:
-            self.cmd_vel_pub.publish(self.cmd_vel_joy)
+            self.cmd_ = self.cmd_vel_joy
 
 def main():
     rospy.init_node("joy_interrupt")
     ji = JoyInterrupt()
 
     print "Here we go!!"
+
+    loop_rate = rospy.Rate(40)
+    
+    while not rospy.is_shutdown():
+        ji.cmd_vel_pub.publish(ji.cmd_)
+        loop_rate.sleep()
 
     rospy.spin()
 
