@@ -341,8 +341,9 @@ class ValueIterationNetworkAgent:
                 #  next_x = x
             #  elif action == 2 or action == 3:
                 #  next_y = y
+        next_state = [next_y, next_x]
 
-        return [next_y, next_x], out_of_range, collision
+        return next_state, out_of_range, collision
 
     def get_path(self, input_data, state_data):
         state_list = []
@@ -358,7 +359,8 @@ class ValueIterationNetworkAgent:
         #  print "reward_map : ", reward_map
         local_goal_index = None
         if isinstance(reward_map, chainer.cuda.ndarray):
-            local_goal_index = cp.where(reward_map == 1)
+            reward_map = cuda.to_cpu(reward_map)
+            local_goal_index = np.where(reward_map == 1)
         else:
             local_goal_index = np.where(reward_map == 1)
         #  print "local_goal_index : ", local_goal_index
@@ -367,8 +369,6 @@ class ValueIterationNetworkAgent:
         challenge_times = 0
         resign = False
         
-        print "state :  ", type(state)
-        print "local_goal_index : ", type(local_goal_index)
         while tuple(state) != local_goal_index:
             challenge_times += 1
             if challenge_times >= max_challenge_times:
