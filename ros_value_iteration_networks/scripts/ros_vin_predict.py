@@ -367,7 +367,8 @@ class ValueIterationNetworkAgent:
         challenge_times = 0
         resign = False
         
-
+        print "state :  ", type(state)
+        print "local_goal_index : ", type(local_goal_index)
         while tuple(state) != local_goal_index:
             challenge_times += 1
             if challenge_times >= max_challenge_times:
