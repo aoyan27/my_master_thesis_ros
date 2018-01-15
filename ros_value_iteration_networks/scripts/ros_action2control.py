@@ -12,8 +12,10 @@ class ActionCommand2ControlVariable:
         self.action_sub \
                 = rospy.Subscriber("/action_command", Int32, self.actionCallback)
 
+        #  self.control_pub \
+                #  = rospy.Publisher("/tinypower/command_velocity", Velocity, queue_size=1)
         self.control_pub \
-                = rospy.Publisher("/tinypower/command_velocity", Velocity, queue_size=1)
+                = rospy.Publisher("/control_command", Velocity, queue_size=1)
 
         self.continuous_action_list = None
         self.n_continuous_action = 0
