@@ -398,27 +398,27 @@ class ValueIterationNetworkAgent:
         self.traj_state_list = state_list
         self.traj_action_list = action_list
 
-        #  grid_image = input_data[0][0]
-        #  reward_map = input_data[0][1]
-        #  n_local_state = grid_image.shape[0] * grid_image.shape[1]
-        #  local_goal_index = np.where(reward_map == 1)
+        grid_image = input_data[0][0]
+        reward_map = input_data[0][1]
+        n_local_state = grid_image.shape[0] * grid_image.shape[1]
+        local_goal_index = np.where(reward_map == 1)
 
-        #  vis_path = np.array(['-']*n_local_state).reshape(grid_image.shape)
-        #  index = np.where(grid_image == 1)
-        #  vis_path[index] = '#'
-        #  state_list = np.asarray(state_list)
-        #  for i in xrange(len(state_list)):
-            #  vis_path[tuple(state_list[i])] = '*'
-            #  if tuple(state_list[i]) == local_goal_index:
-                #  vis_path[tuple(local_goal_index)] = 'G'
-        #  vis_path[state_data[0][0], state_data[0][1]] = '$'
+        vis_path = np.array(['-']*n_local_state).reshape(grid_image.shape)
+        index = np.where(grid_image == 1)
+        vis_path[index] = '#'
+        state_list = np.asarray(state_list)
+        for i in xrange(len(state_list)):
+            vis_path[tuple(state_list[i])] = '*'
+            if tuple(state_list[i]) == local_goal_index:
+                vis_path[tuple(local_goal_index)] = 'G'
+        vis_path[state_data[0][0], state_data[0][1]] = '$'
 
-        #  path_data = {}
-        #  path_data['vis_path'] = vis_path
-        #  path_data['state_list'] = state_list
-        #  path_data['action_list'] = action_list
+        path_data = {}
+        path_data['vis_path'] = vis_path
+        path_data['state_list'] = state_list
+        path_data['action_list'] = action_list
 
-        #  self.view_path(path_data['vis_path'])
+        self.view_path(path_data['vis_path'])
 
     def view_path(self, path):
         grid = copy.deepcopy(path)
@@ -955,7 +955,7 @@ def main(model_path, gpu):
             
             start_time = time.time()
             agent.show_path(input_data, state_data)
-            continuous_state = [5.25, 5.25]
+            continuous_state = [4.25, 4.25]
 
             local_planner = LocalPlanner(idg, agent, continuous_state, orientation)
             local_planner.transform_global_path_discreate2continuous()
