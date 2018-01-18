@@ -65,16 +65,40 @@ class InputDataGenerator:
                 for i in row:
                     print "%2d" % i,
                 print "|"
+
+    def my_resize_image(self, input_image):
+        index = np.where(input_image == 100)
+        #  print "index : "
+        #  print index
+        continuous_y = index[0] * self.grid_map.info.resolution
+        continuous_x = index[1] * self.grid_map.info.resolution
+        #  print "continuous_y : ", continuous_y
+        #  print "continuous_x : ", continuous_x
+        rows = self.grid_map.info.height
+        resize_resolution = self.grid_map.info.resolution*rows/self.input_image_size[0]
+        #  print "resize_resolution : ", resize_resolution
+        resize_discreate_y = continuous_y / resize_resolution
+        resize_discreate_x = continuous_x / resize_resolution
+        #  print "resize_discreate_y : ", resize_discreate_y
+        #  print "resize_discreate_x : ", resize_discreate_x
+        resize_image = np.zeros(self.input_image_size, dtype=np.uint8)
+        resize_image[resize_discreate_y.astype(np.int32), resize_discreate_x.astype(np.int32)] = 1
+        #  print "resize_image : "
+        #  print resize_image
+
+        return resize_image
     
     def grid2image(self, grid_data):
         image = copy.deepcopy(grid_data)
+        #  index = np.where(image == 100)
+        #  image[index] = 1
 
-        index = np.where(image == 100)
-        image[index] = 1
+        resize_image = self.my_resize_image(image)
+
         #  print image
-        image = image.astype(np.uint8)
+       #  image = image.astype(np.uint8)
 
-        resize_image = cv.resize(image.astype(np.uint8), self.input_image_size)
+        #  resize_image = cv.resize(image.astype(np.uint8), self.input_image_size)
         return resize_image
 
     def view_image(self, array, title):
@@ -963,24 +987,24 @@ def main(model_path, gpu):
                 input_data = cuda.to_gpu(input_data)
             print "state_data : ", state_data
             
+            start_time = time.time()
             action = agent.get_action(input_data, state_data)
             #  print "action : ", action, "(", agent.dirs[action], ")"
             
-            start_time = time.time()
             agent.show_path(input_data, state_data)
             continuous_state = [4.25, 4.25]
 
-            local_planner = LocalPlanner(idg, agent, continuous_state, orientation)
-            local_planner.transform_global_path_discreate2continuous()
-            local_planner.get_future_trajectory(continuous_state, orientation)
-            continuous_action = local_planner.evaluation_local_path()
-            print "continuous_action : ", continuous_action, \
-                    local_planner.velocity_vector[continuous_action]
+            #  local_planner = LocalPlanner(idg, agent, continuous_state, orientation)
+            #  local_planner.transform_global_path_discreate2continuous()
+            #  local_planner.get_future_trajectory(continuous_state, orientation)
+            #  continuous_action = local_planner.evaluation_local_path()
+            #  print "continuous_action : ", continuous_action, \
+                    #  local_planner.velocity_vector[continuous_action]
             #  local_planner.show_continuous_objectworld\
                     #  (global_path=local_planner.continuous_global_path_list, \
                      #  local_path=local_planner.future_traj_position_list, \
                      #  selected_path=local_planner.selected_traj_position_list)
-            #  continuous_action = 0
+            continuous_action = 0
             elapsed_time = time.time() - start_time
             print ("elapsed_time:{0}".format(elapsed_time) + "[sec]")
 
