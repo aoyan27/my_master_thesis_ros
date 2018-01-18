@@ -243,8 +243,6 @@ bool a_star(nav_msgs::Odometry state, geometry_msgs::PoseStamped target,
 
 		int n = 0;
 
-		clock_t end_time_ = clock();
-		cout<<"duration = " << (double)(end_time_ - start_time) / CLOCKS_PER_SEC << "sec."<<endl;
 
 		while(!found && !resign){
 			// cout<<"=========================="<<endl;
@@ -328,7 +326,7 @@ bool a_star(nav_msgs::Odometry state, geometry_msgs::PoseStamped target,
 			int challenge_times = 0;
 			while(tmp_x!=start_x || tmp_y!=start_y){
 				challenge_times++;
-				if(challenge_times > 150){
+				if(challenge_times > 300){
 					break;
 				}
 				int before_x, before_y;
@@ -433,7 +431,7 @@ int main(int argc, char** argv)
 
 	cout<<"Here we go!!"<<endl;
 
-	ros::Rate loop_rate(20);
+	ros::Rate loop_rate(1);
 	
 	vector< vector<int> > state_list;
 	vector<int> action_list;
@@ -441,6 +439,7 @@ int main(int argc, char** argv)
 	bool path_found = false;
 	
 	nav_msgs::Path global_path;
+	global_path.header.frame_id = global_map.header.frame_id;
 
 	while(ros::ok()){
 		cout<<"***********************"<<endl;
@@ -452,12 +451,16 @@ int main(int argc, char** argv)
 			view_array(action_list);
 			
 			global_path = set_trajectory(state_list);
-			global_path_pub.publish(global_path);
+			// global_path_pub.publish(global_path);
 
 			state_list.clear();
 			action_list.clear();
-		}
 
+		}
+		global_path.header.stamp = ros::Time::now();
+		global_path_pub.publish(global_path);
+
+		loop_rate.sleep();
 		ros::spinOnce();
 	}
 
