@@ -244,10 +244,15 @@ bool a_star(nav_msgs::Odometry state, geometry_msgs::PoseStamped target,
 		int n = 0;
 
 
+		int challenge_times = 0;
 		while(!found && !resign){
+			if(challenge_times > 500){
+				cout<<"challenge falied!!"<<endl;
+				break;
+			}
 			// cout<<"=========================="<<endl;
 			// cout<<"n : "<<n<<endl;
-			if(open_list.size() == 0 || n > 150){
+			if(open_list.size() == 0){
 				resign = true;
 			}
 			else{
@@ -323,12 +328,8 @@ bool a_star(nav_msgs::Odometry state, geometry_msgs::PoseStamped target,
 
 			// cout<<"start_x : "<<start_x<<endl;
 			// cout<<"start_y : "<<start_y<<endl;
-			int challenge_times = 0;
 			while(tmp_x!=start_x || tmp_y!=start_y){
 				challenge_times++;
-				if(challenge_times > 300){
-					break;
-				}
 				int before_x, before_y;
 				bool collision = move(grid_map ,tmp_x, tmp_y, 
 									  before_x, before_y, action_list_[tmp_y][tmp_x], -1);
@@ -344,9 +345,9 @@ bool a_star(nav_msgs::Odometry state, geometry_msgs::PoseStamped target,
 				}
 			}
 			reverse(state_list.begin(), state_list.end());
-			view_array(shortest_action_list);
+			// view_array(shortest_action_list);
 			reverse(shortest_action_list.begin(), shortest_action_list.end());
-			view_array(shortest_action_list);
+			// view_array(shortest_action_list);
 		}
 
 		clock_t end_time = clock();
@@ -445,10 +446,11 @@ int main(int argc, char** argv)
 		cout<<"***********************"<<endl;
 		path_found = a_star(lcl, target_pose, state_list, action_list);
 		if(path_found){
-			cout<<"state_list : "<<endl;
-			view_gridmap(state_list);
-			cout<<"action_list : "<<endl;
-			view_array(action_list);
+			// cout<<"state_list : "<<endl;
+			// view_gridmap(state_list);
+			// cout<<"action_list : "<<endl;
+			// view_array(action_list);
+			cout<<"state_list_size : "<<state_list.size()<<endl;
 			
 			global_path = set_trajectory(state_list);
 			// global_path_pub.publish(global_path);
