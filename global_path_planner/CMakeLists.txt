@@ -156,6 +156,7 @@ include_directories(
 
 ## Declare a C++ executable
 add_executable(a_star_global src/a_star_global.cpp)
+add_executable(a_star_local_goal src/a_star_local_goal.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -163,6 +164,9 @@ add_executable(a_star_global src/a_star_global.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(a_star_global
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(a_star_local_goal
   ${catkin_LIBRARIES}
 )
 
