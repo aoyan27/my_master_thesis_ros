@@ -970,17 +970,17 @@ def main(model_path, gpu):
             agent.show_path(input_data, state_data)
             continuous_state = [4.25, 4.25]
 
-            #  local_planner = LocalPlanner(idg, agent, continuous_state, orientation)
-            #  local_planner.transform_global_path_discreate2continuous()
-            #  local_planner.get_future_trajectory(continuous_state, orientation)
-            #  continuous_action = local_planner.evaluation_local_path()
-            #  print "continuous_action : ", continuous_action, \
-                    #  local_planner.velocity_vector[continuous_action]
+            local_planner = LocalPlanner(idg, agent, continuous_state, orientation)
+            local_planner.transform_global_path_discreate2continuous()
+            local_planner.get_future_trajectory(continuous_state, orientation)
+            continuous_action = local_planner.evaluation_local_path()
+            print "continuous_action : ", continuous_action, \
+                    local_planner.velocity_vector[continuous_action]
             #  local_planner.show_continuous_objectworld\
                     #  (global_path=local_planner.continuous_global_path_list, \
                      #  local_path=local_planner.future_traj_position_list, \
                      #  selected_path=local_planner.selected_traj_position_list)
-            continuous_action = 0
+            #  continuous_action = 0
             elapsed_time = time.time() - start_time
             print ("elapsed_time:{0}".format(elapsed_time) + "[sec]")
 
