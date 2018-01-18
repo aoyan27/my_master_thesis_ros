@@ -34,7 +34,7 @@ from visualization_msgs.msg import Marker
 
 
 class InputDataGenerator:
-    def __init__(self, input_image_size=(20, 20)):
+    def __init__(self, input_image_size=(16, 16)):
         self.input_image_size = input_image_size
         #  self.gridmap_sub = \
                 #  rospy.Subscriber("/local_map_real/expand", OccupancyGrid, self.gridMapCallback)
@@ -401,17 +401,30 @@ class ValueIterationNetworkAgent:
         grid_image = input_data[0][0]
         reward_map = input_data[0][1]
         n_local_state = grid_image.shape[0] * grid_image.shape[1]
-        local_goal_index = np.where(reward_map == 1)
+        local_goal_index = None
+        if isinstance(reward_map , chainer.cuda.ndarray):
+            local_goal_index = cp.where(reward_map == 1)
+        else:
+            local_goal_index = np.where(reward_map == 1)
 
-        vis_path = np.array(['-']*n_local_state).reshape(grid_image.shape)
-        index = np.where(grid_image == 1)
-        vis_path[index] = '#'
+        index = None
+        if isinstance(grid_image, chainer.cuda.ndarray):
+            index = cp.where(grid_image == 1)
+        else:
+            index = np.where(grid_image == 1)
+        vis_path = None
+        if isinstance(grid_image, chainer.cuda.ndarray):
+            vis_path = cp.array([0]*n_local_state).reshape(grid_image.shape)
+        else:
+            vis_path = np.array([0]*n_local_state).reshape(grid_image.shape)
+
+        vis_path[index] = 15
         state_list = np.asarray(state_list)
         for i in xrange(len(state_list)):
-            vis_path[tuple(state_list[i])] = '*'
+            vis_path[tuple(state_list[i])] = 20
             if tuple(state_list[i]) == local_goal_index:
-                vis_path[tuple(local_goal_index)] = 'G'
-        vis_path[state_data[0][0], state_data[0][1]] = '$'
+                vis_path[tuple(local_goal_index)] = 30
+        vis_path[state_data[0][0], state_data[0][1]] = 40
 
         path_data = {}
         path_data['vis_path'] = vis_path
@@ -425,7 +438,7 @@ class ValueIterationNetworkAgent:
         for row in grid:
             print "|",
             for i in row:
-                print "%2c" % i,
+                print "%2.0f" % i,
             print "|"
 
 class LocalPlanner:
@@ -957,17 +970,17 @@ def main(model_path, gpu):
             agent.show_path(input_data, state_data)
             continuous_state = [4.25, 4.25]
 
-            local_planner = LocalPlanner(idg, agent, continuous_state, orientation)
-            local_planner.transform_global_path_discreate2continuous()
-            local_planner.get_future_trajectory(continuous_state, orientation)
-            continuous_action = local_planner.evaluation_local_path()
-            print "continuous_action : ", continuous_action, \
-                    local_planner.velocity_vector[continuous_action]
+            #  local_planner = LocalPlanner(idg, agent, continuous_state, orientation)
+            #  local_planner.transform_global_path_discreate2continuous()
+            #  local_planner.get_future_trajectory(continuous_state, orientation)
+            #  continuous_action = local_planner.evaluation_local_path()
+            #  print "continuous_action : ", continuous_action, \
+                    #  local_planner.velocity_vector[continuous_action]
             #  local_planner.show_continuous_objectworld\
                     #  (global_path=local_planner.continuous_global_path_list, \
                      #  local_path=local_planner.future_traj_position_list, \
                      #  selected_path=local_planner.selected_traj_position_list)
-            #  continuous_action = 0
+            continuous_action = 0
             elapsed_time = time.time() - start_time
             print ("elapsed_time:{0}".format(elapsed_time) + "[sec]")
 
