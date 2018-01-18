@@ -1,0 +1,7 @@
+image: crcl_global_grid_map_0.pgm
+resolution: 0.250000
+origin: [-64.788902, -64.378952, 0.000000]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196
+
