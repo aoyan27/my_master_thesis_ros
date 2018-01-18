@@ -157,6 +157,7 @@ include_directories(
 ## Declare a C++ executable
 add_executable(a_star_global src/a_star_global.cpp)
 add_executable(a_star_local_goal src/a_star_local_goal.cpp)
+add_executable(global_grid_map_crcl src/global_grid_map_crcl.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -167,6 +168,9 @@ target_link_libraries(a_star_global
   ${catkin_LIBRARIES}
 )
 target_link_libraries(a_star_local_goal
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(global_grid_map_crcl
   ${catkin_LIBRARIES}
 )
 
