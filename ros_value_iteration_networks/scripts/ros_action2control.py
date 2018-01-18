@@ -53,8 +53,9 @@ class ActionCommand2ControlVariable:
 
         control_variable = Velocity()
         control_variable.header.stamp = rospy.Time.now()
-        control_variable.op_linear = self.velocity_vector[action_command][0]
-        control_variable.op_angular = self.velocity_vector[action_command][1]
+
+        control_variable.op_linear = self.velocity_vector[action_command][0]/2.0
+        control_variable.op_angular = -1.0 * self.velocity_vector[action_command][1]/10.0
 
         print "control_variable : ", control_variable
         
