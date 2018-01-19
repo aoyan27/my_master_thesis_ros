@@ -29,11 +29,6 @@ parser.add_argument('-ldp', '--load_dataset_path', \
         default='/make_pedestrian_dataset/datasets/raw/test', \
         type=str, help='Please set load dataset_path')
 
-parser.add_argument('-sdp', '--save_dataset_path', \
-        default='/make_pedestrian_dataset/datasets/processing/test', \
-        type=str, help='Please set save dataset_path')
-
-
 args = parser.parse_args()
 print args
 
