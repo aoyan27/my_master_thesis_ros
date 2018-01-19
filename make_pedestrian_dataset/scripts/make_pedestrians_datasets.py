@@ -130,6 +130,10 @@ class CreateDatasetLocalMapTrajectory:
         self.grid_map = None
         self.local_map_flag = False
 
+        self.create_traj = False
+
+        self.scenario_trajs_length_list = None
+
 
     def save_dataset(self, data, filename):
         print "Now Saving!!!"
@@ -168,42 +172,35 @@ class CreateDatasetLocalMapTrajectory:
 
     def velocityCallback(self, msg):
         print "========================== velocityCallback ================================"
-        #  #  print "msg : ", msg
-        #  #  print len(msg.markers)
+		#  print "msg : ", msg
+		#  print len(msg.markers)
+
+        self.create_traj = False
+
         if len(msg.markers) == 0:
             print "!!!!!!!!!!!!!!!!!!! No pedestrians !!!!!!!!!!!!!!!!!!!!!!!!"
             print "************************ Reset *************************"
             if self.human_exist:
-                self.scenario_count += 1
-                self.local_map_and_trajectories_data['map'] = self.grid_map_list
-                self.local_map_and_trajectories_data['traj'] = self.trajectories
-                #  print "datetime.now() : ", datetime.now().strftime('%Y/%m/%d %H:%M:%S')
+				save_trajs_flag_list = np.array(self.scenario_trajs_length_list) \
+						!= np.array([0 for i in xrange(len(self.color_list))])
+				if save_trajs_flag_list.any():
+					self.scenario_count += 1
+					self.local_map_and_trajectories_data['map'] = self.grid_map_list
+					#  self.local_map_and_trajectories_data['traj'] = self.trajectories
+					self.local_map_and_trajectories_data['traj'] = self.vis_trajectories
+					#  print "datetime.now() : ", datetime.now().strftime('%Y/%m/%d %H:%M:%S')
 
-                date_time = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
-                #  print "date_time : ", date_time
+					date_time = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+					#  print "date_time : ", date_time
 
-                filename = self.abs_path +  "%s_scenario_%d_raw_dataset.pkl" \
-                        % (date_time, self.scenario_count)
-                print "filename : ", filename
-                self.save_dataset(self.local_map_and_trajectories_data, filename)
+					filename = self.abs_path +  "%s_scenario_%d_raw_dataset.pkl" \
+							% (date_time, self.scenario_count)
+					print "filename : ", filename
+					self.save_dataset(self.local_map_and_trajectories_data, filename)
 
             self.human_exist = False
-            self.callback_count = 0
-            self.callback_count_break = 0
-
-            self.reset_trajectories(msg)
-            self.trajs_length_list = [0 for i in xrange(len(self.color_list))]
-            self.trajs_velocity_vector_list = [[] for i in xrange(len(self.color_list))]
-            self.trajs_velocity_vector_length_list = [0 for j in xrange(len(self.color_list))]
-
-            self.trajs_candidate_length_list = [0 for j in xrange(len(self.color_list))]
-            self.trajs_candidate_velocity_vector_length_list \
-                    = [0 for j in xrange(len(self.color_list))]
-
-            self.trajs_no_update_count_list = [0 for j in xrange(len(self.color_list))]
-            
-
-            self.grid_map_list = []
+			
+            self.reset_all_variables(msg)
         else:
             if self.local_map_flag:
                 self.human_exist = True
@@ -215,54 +212,61 @@ class CreateDatasetLocalMapTrajectory:
                     print "############ Run Time : %.3f [s] ########" \
                             % (self.callback_count*self.dt)
                     
-                    temp_trajs_length_list = self.create_trajectories(msg)
-                    self.grid_map_list.append(self.grid_map)
+                    self.scenario_trajs_length_list = self.create_trajectories(msg)
+                    if self.create_traj:
+						self.grid_map_list.append(self.grid_map)
                     print "len(self.grid_map_list) : ", len(self.grid_map_list)
-                    
+                 	
+					#  細かい軌道のやつを排除しようとした
                     #  temp_flag_list = np.array(temp_trajs_length_list) \
                             #  < np.array([20 for i in xrange(len(self.color_list))])
                     #  if temp_flag_list.all():
                         #  print "********* Reset!! **************"
                         #  self.callback_count = 0
-
                 else:
                     print "################ Finish creating datasets ###############"
                     print "***************** Reset ********************"
                     print "##### Break Time : %.3f [s] ####" % (self.callback_count_break*self.dt)
                     self.callback_count_break += 1
 
-                    self.reset_trajectories(msg)
-                    self.trajs_length_list = [0 for i in xrange(len(self.color_list))]
-                    self.trajs_velocity_vector_list = [[] for i in xrange(len(self.color_list))]
-                    self.trajs_velocity_vector_length_list \
-                            = [0 for j in xrange(len(self.color_list))]
-
-                    self.trajs_candidate_length_list = [0 for j in xrange(len(self.color_list))]
-                    self.trajs_candidate_velocity_vector_length_list \
-                            = [0 for j in xrange(len(self.color_list))]
-
-                    self.trajs_no_update_count_list = [0 for j in xrange(len(self.color_list))]
-
-                    self.grid_map_list = []
-
-
                     if self.callback_count_break > self.break_time_threshold:
-                        self.scenario_count += 1
-                        self.local_map_and_trajectories_data['map'] = self.grid_map_list
-                        self.local_map_and_trajectories_data['traj'] = self.trajectories
-                        #  print "datetime.now() : ", datetime.now().strftime('%Y/%m/%d %H:%M:%S')
+						save_trajs_flag_list = np.array(self.scenario_trajs_length_list) \
+								!= np.array([0 for i in xrange(len(self.color_list))])
+						if save_trajs_flag_list.any():
+							self.scenario_count += 1
+							self.local_map_and_trajectories_data['map'] = self.grid_map_list
+							#  self.local_map_and_trajectories_data['traj'] = self.trajectories
+							self.local_map_and_trajectories_data['traj'] = self.vis_trajectories
 
-                        date_time = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
-                        #  print "date_time : ", date_time
+							date_time = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+							#  print "date_time : ", date_time
 
-                        filename = self.abs_path +  "%s_scenario_%d_raw_dataset.pkl" \
-                                % (date_time, self.scenario_count)
-                        print "filename : ", filename
-                        self.save_dataset(self.local_map_and_trajectories_data, filename)
-                        
+							filename = self.abs_path +  "%s_scenario_%d_raw_dataset.pkl" \
+									% (date_time, self.scenario_count)
+							print "filename : ", filename
+							self.save_dataset(self.local_map_and_trajectories_data, filename)
+							
+						self.reset_all_variables(msg)
 
-                        self.callback_count_break = 0
-                        self.callback_count = 0
+
+    def reset_all_variables(self, msg):
+        self.reset_trajectories(msg)
+        self.trajs_length_list = [0 for i in xrange(len(self.color_list))]
+        self.trajs_velocity_vector_list = [[] for i in xrange(len(self.color_list))]
+        self.trajs_velocity_vector_length_list \
+        		= [0 for j in xrange(len(self.color_list))]
+        
+        self.trajs_candidate_length_list = [0 for j in xrange(len(self.color_list))]
+        self.trajs_candidate_velocity_vector_length_list \
+        		= [0 for j in xrange(len(self.color_list))]
+        
+        self.trajs_no_update_count_list = [0 for j in xrange(len(self.color_list))]
+        
+        self.grid_map_list = []
+        
+        self.callback_count_break = 0
+        self.callback_count = 0
+
 
     def reset_trajectories(self, human_trajs):
         del self.trajectories.markers[:]
@@ -305,19 +309,26 @@ class CreateDatasetLocalMapTrajectory:
         
         num_trajs = len(self.color_list)
         #  print "num_trajs : ", num_trajs
-
+        """
+		確保した軌道メモりの数だけループ回す(予測のステップ)
+		"""
         for j in xrange(num_trajs):
-            #  print "*********** get predict position!! ************"
+            print "*********** get predict position!! ************"
             #  print "************ index_trajs : ", j, " *************** "
+			#  確保しているメモり(軌道を保存するやつ)に軌道が入っているかを確認する
             traj_length = self.trajs_length_list[j]
             #  print "traj_length : ", traj_length
-
+            """
+			もし軌道メモりがゼロないなら、
+			"""
             if traj_length != 0:
+                """
+				直前の状態と速度ベクトル)から予測位置を計算
+				"""
                 before_position = self.trajs_before_position_list[j]
                 before_velocity_vector = self.trajs_before_velocity_vector_list[j]
                 #  print "before_velocity_vector : "
                 #  print before_velocity_vector
-
                 predict_position = self.calc_predict_position(before_position, \
                         before_velocity_vector, self.dt)
 
@@ -325,6 +336,9 @@ class CreateDatasetLocalMapTrajectory:
 
                 self.trajs_no_update_count_list[j] += 1
 
+                """
+				計算した予測位置が計測範囲内なら軌道メモりの候補点として保存
+				"""
                 candidate_flag_list = np.array([math.fabs(predict_position.x),\
                         math.fabs(predict_position.y)]) \
                         <= self.range_constraint
@@ -337,14 +351,19 @@ class CreateDatasetLocalMapTrajectory:
                 
         
         #  print "self.callback_count : ", self.callback_count
-
+        """
+		人認識で認識できた人数分ループを回す
+		"""
         for i in xrange(num_humans):
             print "------------------ human_id : ", i, "-------------------"
             #  print "human_trajs.markers[", i, "].scale.x : ", human_trajs.markers[i].scale.x
 
 
             dist_list = [1000.0 for k in xrange(num_trajs)]
-
+			
+            """
+			認識された人の位置、速度ベクトル、方位を格納
+			"""
             position = human_trajs.markers[i].pose.position
             #  print "position : "
             #  print position
@@ -353,18 +372,30 @@ class CreateDatasetLocalMapTrajectory:
             orientation = human_trajs.markers[i].pose.orientation
             #  print "orientation : "
             #  print orientation
-
             
+            """
+			認識された人に割り当てられたidの軌道メモリの長さを計算
+			"""
             traj_length = self.trajs_length_list[i]
             #  print "traj_length : ", traj_length
-            
+            """
+			認識された人の位置が計測範囲内かを確認
+			"""
             flag_list = np.array([math.fabs(position.x), math.fabs(position.y)]) \
                     <= self.range_constraint
-            #  print "flag_list_ : ", flag_list
             if flag_list.all():
+				#  速度ベクトルがあまりにも暴れているのは排除したい
                 if 0.5 <= velocity and velocity <= self.velocity_threshold:
+                    self.create_traj = True
+                    """
+					もし対応する軌道メモりが何もなかったら
+					"""
                     if traj_length == 0:
                         print "!!!!!!!!!!!!!!!! New !!!!!!!!!!!!"
+
+                        """
+						予測位置と観測位置から対応する奴を探すため予測位置と観測位置の距離を算出
+						"""
                         for j in xrange(num_trajs):
                             #  print "************ index_trajs : ", j, " *************** "
                             traj_length = self.trajs_length_list[j]
@@ -389,7 +420,9 @@ class CreateDatasetLocalMapTrajectory:
                         #  print index_min_dist
 
                         #  print "self.distance_threshold : ", self.distance_threshold
-
+                        """
+						もっとも近くしきい値以内の予測地点を持つ軌道メモりと対応付ける
+						"""
                         if min_dist <= self.distance_threshold:
                             print "!!!!!!!!!!!!!!! ADD !!!!!!!!!!!!!!!!"
 
@@ -416,6 +449,9 @@ class CreateDatasetLocalMapTrajectory:
 
                             self.trajs_no_update_count_list[index_min_dist] = 0
                         else:
+                            """
+							もし、しきい値内になかったら、無条件で対応するメモりに保存
+							"""
                             print "!!!!!!!!!!!!!!! add !!!!!!!!!!!!!!!!"
                             self.trajectories.markers[i].header = human_trajs.markers[i].header
                             self.trajectories.markers[i].ns \
@@ -434,7 +470,14 @@ class CreateDatasetLocalMapTrajectory:
 
                             self.trajs_no_update_count_list[i] = 0
                     else:
+                        """
+						もし、対応するメモりに軌道が存在していたら、
+						"""
                         print "!!!!!!!!!!!!!!!! Exist !!!!!!!!!!!!"
+
+                        """
+						予測位置と観測位置から対応する奴を探すため予測位置と観測位置の距離を算出
+						"""
                         for j in xrange(num_trajs):
                             #  print "************ index_trajs : ", j, " *************** "
                             traj_length = self.trajs_length_list[j]
@@ -460,6 +503,9 @@ class CreateDatasetLocalMapTrajectory:
 
                         #  print "self.distance_threshold : ", self.distance_threshold
 
+                        """
+						もっとも近くしきい値以内の予測地点を持つ軌道メモりと対応付ける
+						"""
                         if min_dist <= self.distance_threshold:
                             print "!!!!!!!!!!!!!!! ADD !!!!!!!!!!!!!!!!"
 
@@ -486,6 +532,9 @@ class CreateDatasetLocalMapTrajectory:
 
                             self.trajs_no_update_count_list[index_min_dist] = 0
                         else:
+                            """
+							もし、しきい値内になかったら、新たに予測位置を計算
+							"""
                             print "!!!!!!!!!!!!! Predict !!!!!!!!!!"
                             for j in xrange(num_trajs):
                                 #  print "************ index_trajs_ : ", j, " *************** "
@@ -515,7 +564,14 @@ class CreateDatasetLocalMapTrajectory:
                                             self.trajs_candidate_velocity_vector_list[j][-1] \
                                                     = before_velocity_vector
                 else:
+                    """
+					適切な速度ベクトルがなければ、
+					"""
                     print "!!!!!!!! Predict (velocity not suitable) !!!!!!!!"
+
+                    """
+					新たに予測地点を計算
+					"""
                     for j in xrange(num_trajs):
                         #  print "************ index_trajs__ : ", j, " *************** "
                         traj_length = self.trajs_length_list[j]
@@ -566,17 +622,15 @@ class CreateDatasetLocalMapTrajectory:
                 , self.trajs_candidate_velocity_vector_length_list
         print "self.trajs_no_update_count_list : ", self.trajs_no_update_count_list
 
-        
-        self.view_trajs_pub.publish(self.trajectories)
         self.vis_view_trajs_pub.publish(self.vis_trajectories)
 
         return self.trajs_length_list
 
 
 def main():
-    cdlt = CreateDatasetLocalMapTrajectory()
-
     rospy.init_node("make_pedestrian_datasets")
+
+    cdlt = CreateDatasetLocalMapTrajectory()
     print "Here we go!!!!"
     
     #  loop_rate = rospy.Rate(20)
