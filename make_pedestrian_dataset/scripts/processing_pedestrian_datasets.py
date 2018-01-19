@@ -25,8 +25,14 @@ import pickle
 
 parser = argparse.ArgumentParser(description='This script is processing_pedestrian_dataset...')
 
-parser.add_argument('-dp', '--dataset_path', \
-        default='/home/amsl/ros_catkin_ws/src/master_thesis/make_pedestrian_dataset/datasets/raw/2018_01_19/test_d_kan_single/', type=str, help='Please set dataset_path')
+parser.add_argument('-ldp', '--load_dataset_path', \
+        default='/make_pedestrian_dataset/datasets/raw/test', \
+        type=str, help='Please set load dataset_path')
+
+parser.add_argument('-sdp', '--save_dataset_path', \
+        default='/make_pedestrian_dataset/datasets/processing/test', \
+        type=str, help='Please set save dataset_path')
+
 
 args = parser.parse_args()
 print args
@@ -54,6 +60,8 @@ class ProcessingPedestrianDataset:
         self.cell_size = 0.25
         self.origin_x = None
         self.origin_y = None
+
+        self.dummy_position = Point(x=1000.0, y=1000.0, z=1000.0)
 
         self.pickup_index = None
         self.pedestrian_threshold = 1.0
@@ -145,10 +153,11 @@ class ProcessingPedestrianDataset:
                         [min_discreate_state[j][0]:max_discreate_state[j][0], \
                          min_discreate_state[j][1]:max_discreate_state[j][1]] = 0
                 crcl_image_list.append(image_list_[pickup_index[j]])
-                self.view_image_cui(image_list_[pickup_index[j]])
+                #  print "************* j : ", j, " ************ " 
+                #  self.view_image_cui(image_list_[pickup_index[j]])
                 #  self.view_image(image_list_[pickup_index[j]], 'grid_image')
-                print "----------------------=="
-                self.view_image_cui(image_list[pickup_index[j]])
+                #  print "----------------------=="
+                #  self.view_image_cui(image_list[pickup_index[j]])
                 #  self.view_image(image_list[pickup_index[j]], 'grid_image')
 
         return crcl_image_list
@@ -161,7 +170,7 @@ class ProcessingPedestrianDataset:
         #  print "grid_image_list : "
         #  print grid_image_list
         for i in xrange(num_pedestrians):
-            print "================= i : ", i, "================="
+            #  print "================= i : ", i, "================="
             grid_image_list[i] = self.crcl_pedestrian(image_list, state_list[i], pickup_index[i])
         #  print "grid_image_list : "
         #  print grid_image_list
@@ -181,26 +190,42 @@ class ProcessingPedestrianDataset:
         num_pedestrians = len(marker_array.markers)
         state_list = [[] for i in xrange(num_pedestrians)]
         self.pickup_index = [[] for i in xrange(num_pedestrians)]
+
+        discreate_dummy_position = self.continuous2discreate(self.dummy_position)
+
         for i in xrange(num_pedestrians):
             num_state_list_size = len(marker_array.markers[i].points)
             #  print "marker_array.markers[", i, "] : "
             #  print marker_array.markers[i].points
             single_pedestrian_state_list = None
-            if num_state_list_size != 0:
+            no_dummy_state_list = list(filter(lambda x: x!=self.dummy_position, \
+                                              marker_array.markers[i].points))
+            #  print "no_dummy_state_list : ", no_dummy_state_list
+            if len(no_dummy_state_list) != 0:
+                no_dummy_index \
+                        = np.where(np.asarray(marker_array.markers[i].points) \
+                                   == no_dummy_state_list[0])[0][0]
+                #  print "no_dummy_index : ", no_dummy_index
                 single_pedestrian_state_list \
-                    = [self.continuous2discreate(marker_array.markers[i].points[0])] 
-                self.pickup_index[i].append(0)
+                    = [self.continuous2discreate(marker_array.markers[i].points[no_dummy_index])] 
+                self.pickup_index[i].append(no_dummy_index)
                 #  print "single_pedestrian_state_list : "
                 #  print single_pedestrian_state_list
                 for j in xrange(1, num_state_list_size):
-                   if self.continuous2discreate(marker_array.markers[i].points[j])\
-                           != self.continuous2discreate(marker_array.markers[i].points[j-1]):
-                        single_pedestrian_state_list.append\
-                                (self.continuous2discreate(marker_array.markers[i].points[j]))
+                    current_discreate_point \
+                            = self.continuous2discreate(marker_array.markers[i].points[j])
+                    #  print "curent_discreate_point : ", current_discreate_point
+                    before_discreate_point \
+                            = self.continuous2discreate(marker_array.markers[i].points[j-1])
+                    #  print "before_discreate_point : ", before_discreate_point
+                    if current_discreate_point != before_discreate_point \
+                           and current_discreate_point != discreate_dummy_position:
+                        #  print "current_point_ : ", current_discreate_point
+                        single_pedestrian_state_list.append(current_discreate_point)
                         self.pickup_index[i].append(j)
 
-                #  print "single_pedrstrian_state_list : "
-                #  print single_pedestrian_state_list
+                    #  print "single_pedrstrian_state_list : "
+                    #  print single_pedestrian_state_list
                 state_list[i] = single_pedestrian_state_list
         #  print "state_list : "
         #  print state_list
@@ -286,17 +311,22 @@ class ProcessingPedestrianDataset:
         #  print self.dataset_image_list
 
 
+def save_dataset(data, filename):
+    print "Save %d map_dataset.pkl!!!!!" % len(data['image'])
+    with open(filename, mode='wb') as f:
+        pickle.dump(data, f)
+
 
 def main():
     rospy.init_node('processing_pedestrian_dataset')
 
     ppd = ProcessingPedestrianDataset()
 
-    directory = os.listdir(args.dataset_path)
+    directory = os.listdir(args.load_dataset_path)
     print directory
     
     if len(directory) != 0:
-        ppd.load_raw_dataset(args.dataset_path+directory[0])
+        ppd.load_raw_dataset(args.load_dataset_path+directory[0])
     
     rows = ppd.height
     cols = ppd.width
@@ -307,13 +337,13 @@ def main():
     state_list_data = np.zeros((max_samples, 2))
     action_list_data = np.zeros(max_samples)
 
-    directory = os.listdir(args.dataset_path)
+    directory = os.listdir(args.load_dataset_path)
     print directory
 
     num_sample = 0
     for filename in directory:
         print "-------------- filename : ", filename, "--------------------"
-        ppd.load_raw_dataset(args.dataset_path+filename)
+        ppd.load_raw_dataset(args.load_dataset_path+filename)
         ppd.get_dataset()
         
         num_pedestrians = len(ppd.pedestrian_markers.markers)
@@ -336,17 +366,19 @@ def main():
 
             num_sample += ns
 
-    #  print "num_sample : ", num_sample
+    print "num_sample : ", num_sample
     #  for i in xrange(num_sample):
         #  print "*******************************"
         #  ppd.view_image_cui(image_data[i])
 
-    #  data = {}
-    #  data['image'] = image_data[0:num_sample]
-    #  data['reward'] = reward_map_data[0:num_sample]
-    #  data['state'] = state_list_data[0:num_sample]
-    #  data['action'] = action_list_data[0:num_sample]
+    data = {}
+    data['image'] = image_data[0:num_sample]
+    data['reward'] = reward_map_data[0:num_sample]
+    data['state'] = state_list_data[0:num_sample]
+    data['action'] = action_list_data[0:num_sample]
 
+    dataset_name ='pedestrian_dataset.pkl'
+    save_dataset(data, args.save_dataset_path+dataset_name)
 
 
 
