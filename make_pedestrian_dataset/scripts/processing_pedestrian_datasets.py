@@ -64,7 +64,28 @@ class ProcessingPedestrianDataset:
         self.dummy_position = Point(x=1000.0, y=1000.0, z=1000.0)
 
         self.pickup_index = None
-        self.pedestrian_threshold = 1.0
+        self.pedestrian_threshold = 1.0    #  人間の幅を設定
+
+        self.file_path \
+            = "/home/amsl/ros_catkin_ws/src/master_thesis/make_pedestrian_dataset/datasets/processing/"
+        self.abs_path = None
+        self.date = datetime.now().strftime('%Y_%m_%d')
+        #  print "date : ", date
+        self.load_path = args.load_dataset_path
+        self.locate = self.load_path.split('/')[-2]
+
+        if not os.path.exists(self.file_path+self.date):
+            os.makedirs(self.file_path+self.date)
+        if not os.path.exists(self.file_path+self.date+"/"+self.locate):
+            os.makedirs(self.file_path+self.date+"/"+self.locate)
+        
+        if len(os.listdir(self.file_path+self.date+"/"+self.locate)) != 0:
+            sys.stderr.write('\033[31mError!! This directory already has some files!!\033[0m\n')
+            sys.exit(1)
+        else:
+            self.abs_path = self.file_path + self.date + "/" + self.locate + "/"
+        print "self.abs_path : ", self.abs_path
+        
 
     def load_raw_dataset(self, filename):
         with open(filename, mode='rb') as f:
@@ -294,8 +315,8 @@ class ProcessingPedestrianDataset:
     def get_dataset(self):
 
         self.dataset_state_list = self.get_state_list(self.pedestrian_markers)
-        print "self.dataset_state_list : "
-        print  self.dataset_state_list
+        #  print "self.dataset_state_list : "
+        #  print  self.dataset_state_list
         self.dataset_action_list = self.get_action_list(self.dataset_state_list)
         #  print "self.dataset_action_list : "
         #  print self.dataset_action_list
@@ -311,10 +332,13 @@ class ProcessingPedestrianDataset:
         #  print self.dataset_image_list
 
 
-def save_dataset(data, filename):
-    print "Save %d map_dataset.pkl!!!!!" % len(data['image'])
-    with open(filename, mode='wb') as f:
-        pickle.dump(data, f)
+    def save_dataset(self, data, filename):
+        save_filename = self.abs_path+filename
+        print "Now Saveing..."
+        print "Path : %s " % save_filename
+        print "Save %d datasets !!!!!" % len(data['image'])
+        with open(save_filename, mode='wb') as f:
+            pickle.dump(data, f)
 
 
 def main():
@@ -371,6 +395,8 @@ def main():
         #  print "*******************************"
         #  ppd.view_image_cui(image_data[i])
 
+    print "++++++++++++++++++++++++++++++++++++++++++++"
+
     data = {}
     data['image'] = image_data[0:num_sample]
     data['reward'] = reward_map_data[0:num_sample]
@@ -378,8 +404,7 @@ def main():
     data['action'] = action_list_data[0:num_sample]
 
     dataset_name ='pedestrian_dataset.pkl'
-    save_dataset(data, args.save_dataset_path+dataset_name)
-
+    ppd.save_dataset(data, dataset_name)
 
 
 if __name__ == "__main__":
