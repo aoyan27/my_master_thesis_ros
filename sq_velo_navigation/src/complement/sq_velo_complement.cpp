@@ -13,7 +13,7 @@
 
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/Imu.h>
-#include <catkin_ceres_msgs/AMU_data.h>
+
 #include <nav_msgs/Odometry.h>
 
 #include <tf/tf.h>
