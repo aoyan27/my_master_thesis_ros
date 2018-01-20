@@ -78,11 +78,8 @@ class CreateDatasetLocalMapTrajectory:
 
         self.trajectories = MarkerArray()
         self.trajectories.markers = [Marker() for i in xrange(len(self.color_list))]
-
-        self.vis_trajectories = MarkerArray()
         
         self.trajs_length_list = [0 for i in xrange(len(self.color_list))]
-        self.trajs_before_length_list = [0 for i in xrange(len(self.color_list))]
 
         self.dt = 0.05
         self.velocity_threshold = 5.0    #  歩行者としての速度の上限
@@ -97,39 +94,29 @@ class CreateDatasetLocalMapTrajectory:
 
         self.no_update_count_threshold = 0.05 / self.dt
 
-
         self.distance_threshold = (self.velocity_threshold * self.dt + 0.02) * 1.5
 
-        self.trajs_before_position_list \
-                = [Point(x=1000.0, y=1000.0, z=1000.0) for i in xrange(len(self.color_list))]
-
-        self.trajs_predict_position_list \
-                = [Point(x=1000.0, y=1000.0, z=1000.0) for i in xrange(len(self.color_list))]
+        self.dummy_position = Point(x=1000.0, y=1000.0, z=1000.0)
+        self.dummy_velocity_vector = [0.0, Quaternion()]
 
         self.trajs_velocity_vector_list = [[] for i in xrange(len(self.color_list))]
-        self.trajs_before_velocity_vector_list \
-                = [[0, Quaternion()] for i in xrange(len(self.color_list))]
-
-        self.trajs_velocity_vector_length_list = [0 for j in xrange(len(self.color_list))]
-
         
         self.range_constraint = np.array([5.0, 5.0])
-
-
-        self.trajs_candidate_list = [[] for i in xrange(len(self.color_list))]
-        self.trajs_candidate_velocity_vector_list = [[] for i in xrange(len(self.color_list))]
-        self.trajs_candidate_length_list = [0 for j in xrange(len(self.color_list))]
-        self.trajs_candidate_velocity_vector_length_list \
-                = [0 for j in xrange(len(self.color_list))]
         
         self.trajs_no_update_count_list = [0 for j in xrange(len(self.color_list))]
-       
 
 
         self.grid_map_list = []
         self.grid_map = None
         self.local_map_flag = False
 
+        self.create_traj = False
+
+        self.scenario_trajs_length_list = None
+
+        self.frame_id = "/velodyne"
+
+        self.reset_flag = True
 
     def save_dataset(self, data, filename):
         print "Now Saving!!!"
@@ -146,7 +133,7 @@ class CreateDatasetLocalMapTrajectory:
         cols = msg.info.width
         map_data = msg.data
 
-        self.grid_map = np.asarray(map_data).reshape((rows, cols))
+        self.grid_map = np.asarray(map_data, dtype=np.uint8).reshape((rows, cols))
         #  print "grid_map : "
         #  print self.grid_map
         #  self.show_grid_map(self.grid_map)
@@ -165,48 +152,38 @@ class CreateDatasetLocalMapTrajectory:
                     print "%2d" % i,
                 print "|"
         
-
     def velocityCallback(self, msg):
         print "========================== velocityCallback ================================"
-        #  #  print "msg : ", msg
-        #  #  print len(msg.markers)
+        #  print "msg : ", msg
+        #  print len(msg.markers)
+
+        self.create_traj = False
+
         if len(msg.markers) == 0:
             print "!!!!!!!!!!!!!!!!!!! No pedestrians !!!!!!!!!!!!!!!!!!!!!!!!"
             print "************************ Reset *************************"
-            if self.human_exist:
-                self.scenario_count += 1
-                self.local_map_and_trajectories_data['map'] = self.grid_map_list
-                self.local_map_and_trajectories_data['traj'] = self.trajectories
-                #  print "datetime.now() : ", datetime.now().strftime('%Y/%m/%d %H:%M:%S')
+            if self.reset_flag and self.human_exist:
+                save_trajs_flag_list = np.array(self.scenario_trajs_length_list) \
+                        != np.array([0 for i in xrange(len(self.color_list))])
+                if save_trajs_flag_list.any():
+                    self.scenario_count += 1
+                    self.local_map_and_trajectories_data['map'] = self.grid_map_list
+                    self.local_map_and_trajectories_data['traj'] = self.trajectories
 
-                date_time = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
-                #  print "date_time : ", date_time
+                    date_time = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+                    #  print "date_time : ", date_time
 
-                filename = self.abs_path +  "%s_scenario_%d_raw_dataset.pkl" \
-                        % (date_time, self.scenario_count)
-                print "filename : ", filename
-                self.save_dataset(self.local_map_and_trajectories_data, filename)
+                    filename = self.abs_path +  "_%s_scenario_%d_raw_dataset.pkl" \
+                                    % (date_time, self.scenario_count)
+                    print "filename : ", filename
+                    self.save_dataset(self.local_map_and_trajectories_data, filename)
 
-            self.human_exist = False
-            self.callback_count = 0
-            self.callback_count_break = 0
-
-            self.reset_trajectories(msg)
-            self.trajs_length_list = [0 for i in xrange(len(self.color_list))]
-            self.trajs_velocity_vector_list = [[] for i in xrange(len(self.color_list))]
-            self.trajs_velocity_vector_length_list = [0 for j in xrange(len(self.color_list))]
-
-            self.trajs_candidate_length_list = [0 for j in xrange(len(self.color_list))]
-            self.trajs_candidate_velocity_vector_length_list \
-                    = [0 for j in xrange(len(self.color_list))]
-
-            self.trajs_no_update_count_list = [0 for j in xrange(len(self.color_list))]
-            
-
-            self.grid_map_list = []
+            self.human_exist = False		
+            self.reset_all_variables(msg)
         else:
             if self.local_map_flag:
                 self.human_exist = True
+                self.reset_flag = True
                 self.callback_count += 1
                 
                 print "self.callback_count : ", self.callback_count
@@ -215,54 +192,59 @@ class CreateDatasetLocalMapTrajectory:
                     print "############ Run Time : %.3f [s] ########" \
                             % (self.callback_count*self.dt)
                     
-                    temp_trajs_length_list = self.create_trajectories(msg)
+                    self.scenario_trajs_length_list = self.create_trajectories(msg)
                     self.grid_map_list.append(self.grid_map)
                     print "len(self.grid_map_list) : ", len(self.grid_map_list)
-                    
-                    #  temp_flag_list = np.array(temp_trajs_length_list) \
+
+                    #  if self.reset_flag:
+                        #  print "********** Reset(no pedestrians in the range) **********"
+                        #  self.reset_all_variables(msg)
+                 	
+                    #  細かい軌道のやつを排除しようとした
+                    #  temp_flag_list = np.array(self.scenario_trajs_length_list) \
                             #  < np.array([20 for i in xrange(len(self.color_list))])
                     #  if temp_flag_list.all():
                         #  print "********* Reset!! **************"
                         #  self.callback_count = 0
-
                 else:
                     print "################ Finish creating datasets ###############"
                     print "***************** Reset ********************"
                     print "##### Break Time : %.3f [s] ####" % (self.callback_count_break*self.dt)
                     self.callback_count_break += 1
-
-                    self.reset_trajectories(msg)
-                    self.trajs_length_list = [0 for i in xrange(len(self.color_list))]
-                    self.trajs_velocity_vector_list = [[] for i in xrange(len(self.color_list))]
-                    self.trajs_velocity_vector_length_list \
-                            = [0 for j in xrange(len(self.color_list))]
-
-                    self.trajs_candidate_length_list = [0 for j in xrange(len(self.color_list))]
-                    self.trajs_candidate_velocity_vector_length_list \
-                            = [0 for j in xrange(len(self.color_list))]
-
-                    self.trajs_no_update_count_list = [0 for j in xrange(len(self.color_list))]
-
-                    self.grid_map_list = []
-
-
+                    
                     if self.callback_count_break > self.break_time_threshold:
-                        self.scenario_count += 1
-                        self.local_map_and_trajectories_data['map'] = self.grid_map_list
-                        self.local_map_and_trajectories_data['traj'] = self.trajectories
-                        #  print "datetime.now() : ", datetime.now().strftime('%Y/%m/%d %H:%M:%S')
+                        save_trajs_flag_list = np.array(self.scenario_trajs_length_list) \
+                                        != np.array([0 for i in xrange(len(self.color_list))])
+                        if save_trajs_flag_list.any():
+                            self.scenario_count += 1
+                            self.local_map_and_trajectories_data['map'] = self.grid_map_list
+                            self.local_map_and_trajectories_data['traj'] = self.trajectories
 
-                        date_time = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
-                        #  print "date_time : ", date_time
+                            date_time = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+                            #  print "date_time : ", date_time
 
-                        filename = self.abs_path +  "%s_scenario_%d_raw_dataset.pkl" \
-                                % (date_time, self.scenario_count)
-                        print "filename : ", filename
-                        self.save_dataset(self.local_map_and_trajectories_data, filename)
-                        
+                            filename = self.abs_path +  "%s_scenario_%d_raw_dataset.pkl" \
+                                            % (date_time, self.scenario_count)
+                            print "filename : ", filename
+                            self.save_dataset(self.local_map_and_trajectories_data, filename)
+                                
+                        self.reset_all_variables(msg)
 
-                        self.callback_count_break = 0
-                        self.callback_count = 0
+
+    def reset_all_variables(self, msg):
+        self.reset_flag = False
+
+        self.reset_trajectories(msg)
+        self.trajs_length_list = [0 for i in xrange(len(self.color_list))]
+        self.trajs_velocity_vector_list = [[] for i in xrange(len(self.color_list))]
+        
+        self.trajs_no_update_count_list = [0 for j in xrange(len(self.color_list))]
+        
+        self.grid_map_list = []
+        
+        self.callback_count_break = 0
+        self.callback_count = 0
+
 
     def reset_trajectories(self, human_trajs):
         del self.trajectories.markers[:]
@@ -275,7 +257,7 @@ class CreateDatasetLocalMapTrajectory:
             self.trajectories.markers[i].type = Marker.LINE_STRIP
             self.trajectories.markers[i].action = Marker.ADD
             self.trajectories.markers[i].scale.x = 0.30
-            self.trajectories.markers[i].lifetime = rospy.Duration(0.1)
+            self.trajectories.markers[i].lifetime = rospy.Duration()
     
     def calc_predict_position(self, before_position, before_velocity_vector, dt):
         q = (before_velocity_vector[1].x, before_velocity_vector[1].y, \
@@ -296,287 +278,180 @@ class CreateDatasetLocalMapTrajectory:
     def calc_dist(self, a, b):
         return math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2 + (a.z-b.z)**2)
 
+    def set_trajectory_parameter(self, num_id, time_stamp, point, velocity_vector, append=False):
+        self.trajectories.markers[num_id].header.frame_id = self.frame_id
+        self.trajectories.markers[num_id].header.stamp = time_stamp
+        self.trajectories.markers[num_id].ns = "human_%d" % num_id
+        self.trajectories.markers[num_id].id = num_id
+        self.trajectories.markers[num_id].color = self.color_list[num_id]
+
+        if not append:
+            self.trajectories.markers[num_id].points[-1] = point
+            self.trajs_velocity_vector_list[num_id][-1] = velocity_vector
+        else:
+            self.trajectories.markers[num_id].points.append(point)
+            self.trajs_velocity_vector_list[num_id].append(velocity_vector)
+
+
+
     def create_trajectories(self, human_trajs):
         num_humans = len(human_trajs.markers)
-        #  print "num_humans : ", num_humans
+        print "num_humans : ", num_humans
         if num_humans >= len(self.color_list):
             num_humans = len(self.color_list)
-            #  print "num_humans(max) : ", num_humans
+            print "num_humans(max) : ", num_humans
         
         num_trajs = len(self.color_list)
-        #  print "num_trajs : ", num_trajs
+        print "num_trajs : ", num_trajs
+        """
+        予測ステップ
+        """
+        time_stamp = rospy.Time.now()
+        for i in xrange(num_trajs):
+            #  print "**************** traj_id : ", i, " *************** "
+            if self.trajs_length_list[i] == 0:
+                #  print "!!!!!!!!!!! Set init dummy point and velocity_vector !!!!!!!!!!"
+                self.set_trajectory_parameter(i, time_stamp, \
+                                              self.dummy_position, \
+                                              self.dummy_velocity_vector, append=True)
+            else:
+                before_position = self.trajectories.markers[i].points[-1]
+                before_velocity_vector = self.trajs_velocity_vector_list[i][-1]
+                #  print "before_position : "
+                #  print before_position
+                #  print "before_velocity_vector : ", before_velocity_vector
 
-        for j in xrange(num_trajs):
-            #  print "*********** get predict position!! ************"
-            #  print "************ index_trajs : ", j, " *************** "
-            traj_length = self.trajs_length_list[j]
-            #  print "traj_length : ", traj_length
+                if before_position == self.dummy_position:
+                    self.set_trajectory_parameter(i, time_stamp, \
+                                                  self.dummy_position, \
+                                                  self.dummy_velocity_vector, append=True)
+                else:
+                    self.trajs_no_update_count_list[i] += 1
+                    predict_position \
+                            = self.calc_predict_position(before_position, \
+                                                         before_velocity_vector, self.dt)
+                    #  print "predict_position : "
+                    #  print predict_position
 
-            if traj_length != 0:
-                before_position = self.trajs_before_position_list[j]
-                before_velocity_vector = self.trajs_before_velocity_vector_list[j]
-                #  print "before_velocity_vector : "
-                #  print before_velocity_vector
-
-                predict_position = self.calc_predict_position(before_position, \
-                        before_velocity_vector, self.dt)
-
-                self.trajs_before_position_list[j] = predict_position
-
-                self.trajs_no_update_count_list[j] += 1
-
-                candidate_flag_list = np.array([math.fabs(predict_position.x),\
-                        math.fabs(predict_position.y)]) \
-                        <= self.range_constraint
-                #  print "candidate_flag_list : ", candidate_flag_list
-                if candidate_flag_list.all():
-                    if self.trajs_no_update_count_list[j] \
-                            <= self.no_update_count_threshold:
-                        self.trajs_candidate_list[j].append(predict_position)
-                        self.trajs_candidate_velocity_vector_list[j].append(before_velocity_vector)
-                
+                    predict_range_flag = np.array([math.fabs(predict_position.x), \
+                                                   math.fabs(predict_position.y)]) \
+                                       <= self.range_constraint
+                    if predict_range_flag.all():
+                        if self.trajs_no_update_count_list[i] \
+                                <= self.no_update_count_threshold:
+                            self.set_trajectory_parameter(i, time_stamp, \
+                                                          predict_position, \
+                                                          before_velocity_vector, \
+                                                          append=True)
         
-        #  print "self.callback_count : ", self.callback_count
-
+        """
+	人認識で認識できた人数分ループを回す
+        """
         for i in xrange(num_humans):
             print "------------------ human_id : ", i, "-------------------"
             #  print "human_trajs.markers[", i, "].scale.x : ", human_trajs.markers[i].scale.x
 
-
             dist_list = [1000.0 for k in xrange(num_trajs)]
 
+            """
+            認識された人の位置、速度ベクトル、方位を格納
+            """
             position = human_trajs.markers[i].pose.position
-            #  print "position : "
-            #  print position
+            print "position : "
+            print position
             velocity = human_trajs.markers[i].scale.x
             #  print "velocity : ", velocity
             orientation = human_trajs.markers[i].pose.orientation
             #  print "orientation : "
             #  print orientation
+            velocity_vector = [velocity, orientation]
+            print "velocity_vector : "
+            print velocity_vector
 
-            
-            traj_length = self.trajs_length_list[i]
-            #  print "traj_length : ", traj_length
-            
-            flag_list = np.array([math.fabs(position.x), math.fabs(position.y)]) \
+            """
+            認識された人の位置が計測範囲内かを確認
+            """
+            range_flag = np.array([math.fabs(position.x), math.fabs(position.y)]) \
                     <= self.range_constraint
-            #  print "flag_list_ : ", flag_list
-            if flag_list.all():
+            if range_flag.all():
+                #  速度ベクトルがあまりにも暴れているのは排除したい
                 if 0.5 <= velocity and velocity <= self.velocity_threshold:
-                    if traj_length == 0:
-                        print "!!!!!!!!!!!!!!!! New !!!!!!!!!!!!"
-                        for j in xrange(num_trajs):
-                            #  print "************ index_trajs : ", j, " *************** "
-                            traj_length = self.trajs_length_list[j]
-                            #  print "traj_length : ", traj_length
+                    self.create_traj = True
 
-                            if traj_length != 0:
-                                predict_position = self.trajs_before_position_list[j]
+                    traj_position = self.trajectories.markers[i].points[-1]
+                    traj_velocity_vector = self.trajs_velocity_vector_list[i][-1]
 
-                                #  print "predic_position : "
-                                #  print predict_position
-                                #  print "position : "
-                                #  print position
-                                #  print "dist : ", self.calc_dist(predict_position, position)
-                                
-                                #  dist_list[j] = self.calc_dist(before_position, position)
-                                dist_list[j] = self.calc_dist(predict_position, position)
-                        #  print "dist_list : ", dist_list
-                        min_dist = min(dist_list)
-                        #  print "min_dist : ", min_dist
-                        index_min_dist = np.argmin(np.asarray(dist_list))
-                        #  print "index_min_dist : "
-                        #  print index_min_dist
-
-                        #  print "self.distance_threshold : ", self.distance_threshold
-
-                        if min_dist <= self.distance_threshold:
-                            print "!!!!!!!!!!!!!!! ADD !!!!!!!!!!!!!!!!"
-
-                            self.trajectories.markers[index_min_dist].header \
-                                    = human_trajs.markers[i].header
-                            self.trajectories.markers[index_min_dist].ns \
-                                    = "human_%d" % human_trajs.markers[i].id
-                            self.trajectories.markers[index_min_dist].id \
-                                    = human_trajs.markers[i].id
-                            self.trajectories.markers[index_min_dist].color \
-                                    = self.color_list[index_min_dist]
-                            self.trajectories.markers[index_min_dist].points.append(position)
-                            self.trajs_velocity_vector_list[index_min_dist].append(\
-                                    [velocity, orientation])
-
-                            self.trajs_candidate_list[index_min_dist][-1] = position
-                            self.trajs_candidate_velocity_vector_list[index_min_dist][-1] \
-                                    = [velocity, orientation]
-                            
-
-                            self.trajs_before_position_list[index_min_dist] = position 
-                            self.trajs_before_velocity_vector_list[index_min_dist] \
-                                    = [velocity, orientation]
-
-                            self.trajs_no_update_count_list[index_min_dist] = 0
-                        else:
-                            print "!!!!!!!!!!!!!!! add !!!!!!!!!!!!!!!!"
-                            self.trajectories.markers[i].header = human_trajs.markers[i].header
-                            self.trajectories.markers[i].ns \
-                                    = "human_%d" % human_trajs.markers[i].id
-                            self.trajectories.markers[i].id = human_trajs.markers[i].id
-                            self.trajectories.markers[i].color = self.color_list[i]
-                            self.trajectories.markers[i].points.append(position)
-                            self.trajs_velocity_vector_list[i].append([velocity, orientation])
-
-                            self.trajs_candidate_list[i].append(position)
-                            self.trajs_candidate_velocity_vector_list[i].append(\
-                                    [velocity, orientation])
-                        
-                            self.trajs_before_position_list[i] = position
-                            self.trajs_before_velocity_vector_list[i] = [velocity, orientation]
-
-                            self.trajs_no_update_count_list[i] = 0
-                    else:
-                        print "!!!!!!!!!!!!!!!! Exist !!!!!!!!!!!!"
-                        for j in xrange(num_trajs):
-                            #  print "************ index_trajs : ", j, " *************** "
-                            traj_length = self.trajs_length_list[j]
-                            #  print "traj_length : ", traj_length
-
-                            if traj_length != 0:
-                                predict_position = self.trajs_before_position_list[j]
-
-                                #  print "predic_position : "
-                                #  print predict_position
-                                #  print "position : "
-                                #  print position
-                                #  print "dist : ", self.calc_dist(predict_position, position)
-                                
-                                #  dist_list[j] = self.calc_dist(before_position, position)
-                                dist_list[j] = self.calc_dist(predict_position, position)
-                        #  print "dist_list : ", dist_list
-                        min_dist = min(dist_list)
-                        #  print "min_dist : ", min_dist
-                        index_min_dist = np.argmin(np.asarray(dist_list))
-                        #  print "index_min_dist : "
-                        #  print index_min_dist
-
-                        #  print "self.distance_threshold : ", self.distance_threshold
-
-                        if min_dist <= self.distance_threshold:
-                            print "!!!!!!!!!!!!!!! ADD !!!!!!!!!!!!!!!!"
-
-                            self.trajectories.markers[index_min_dist].header \
-                                    = human_trajs.markers[i].header
-                            self.trajectories.markers[index_min_dist].ns \
-                                    = "human_%d" % human_trajs.markers[i].id
-                            self.trajectories.markers[index_min_dist].id \
-                                    = human_trajs.markers[i].id
-                            self.trajectories.markers[index_min_dist].color \
-                                    = self.color_list[index_min_dist]
-                            self.trajectories.markers[index_min_dist].points.append(position)
-                            self.trajs_velocity_vector_list[index_min_dist].append(\
-                                    [velocity, orientation])
-
-                            self.trajs_candidate_list[index_min_dist][-1] = position
-                            self.trajs_candidate_velocity_vector_list[index_min_dist][-1] \
-                                    = [velocity, orientation]
-                            
-
-                            self.trajs_before_position_list[index_min_dist] = position 
-                            self.trajs_before_velocity_vector_list[index_min_dist] \
-                                    = [velocity, orientation]
-
-                            self.trajs_no_update_count_list[index_min_dist] = 0
-                        else:
-                            print "!!!!!!!!!!!!! Predict !!!!!!!!!!"
-                            for j in xrange(num_trajs):
-                                #  print "************ index_trajs_ : ", j, " *************** "
-                                traj_length = self.trajs_length_list[j]
-                                #  print "traj_length : ", traj_length
-
-                                if traj_length != 0:
-                                    predict_position = self.trajs_before_position_list[j]
-
-                                    #  print "predic_position_ : "
-                                    #  print predict_position
-                                    #  print "position_ : "
-                                    #  print position
-
-                                    self.trajs_before_position_list[j] = predict_position
-                                    self.trajs_before_velocity_vector_list[j] \
-                                            = before_velocity_vector
-
-                                    candidate_flag_list = np.array([math.fabs(predict_position.x),\
-                                            math.fabs(predict_position.y)]) \
-                                            <= self.range_constraint
-                                    #  print "candidate_flag_list : ", candidate_flag_list
-                                    if candidate_flag_list.all():
-                                        if self.trajs_no_update_count_list[j] \
-                                                <= self.no_update_count_threshold:
-                                            self.trajs_candidate_list[j][-1] = predict_position
-                                            self.trajs_candidate_velocity_vector_list[j][-1] \
-                                                    = before_velocity_vector
-                else:
-                    print "!!!!!!!! Predict (velocity not suitable) !!!!!!!!"
+                    #  """
+                    #  もし、対応する軌道メモりの最新の点がダミーなら
+                    #  """
+                    #  if traj_position != self.dummy_position:
+                    """
+                    すべての軌道メモりの最新の位置(予測位置)と観測位置から対応する奴を探す
+                    """
+                    #  print "!!!!!!!!!!!!! No Dummy !!!!!!!!!!!!"
                     for j in xrange(num_trajs):
-                        #  print "************ index_trajs__ : ", j, " *************** "
-                        traj_length = self.trajs_length_list[j]
-                        #  print "traj_length_ : ", traj_length
+                        #  print "************ index_trajs : ", j, " *************** "
+                        traj_position_ = self.trajectories.markers[j].points[-1]
+                        traj_velocity_vector_ = self.trajs_velocity_vector_list[j][-1]
+                        #  print "traj_position_ : ", traj_position_
 
-                        if traj_length != 0:
-                            predict_position = self.trajs_before_position_list[j]
+                        if traj_position_ != self.dummy_position:
+                            dist_list[j] = self.calc_dist(traj_position_, position)
 
-                            #  print "predic_position__ : "
-                            #  print predict_position
-                            #  print "position__ : "
-                            #  print position
+                    #  print "dist_list : ", dist_list
+                    min_dist = min(dist_list)
+                    #  print "min_dist : ", min_dist
+                    index_min_dist = np.argmin(np.asarray(dist_list))
 
-                            self.trajs_before_position_list[j] = predict_position
-                            self.trajs_before_velocity_vector_list[j] \
-                                    = before_velocity_vector
+                    #  print "index_min_dist : "
+                    #  print index_min_dist
 
+                    #  print "self.distance_threshold : ", self.distance_threshold
+                    """
+                    もっとも近くしきい値以内の予測地点を持つ軌道メモりと対応付ける
+                    """
+                    if min_dist <= self.distance_threshold:
+                        #  print "!!!!!!!!!!!!!!! ADD !!!!!!!!!!!!!!!!"
+                        self.set_trajectory_parameter(index_min_dist, time_stamp, \
+                                                      position, velocity_vector)
+                        self.trajs_no_update_count_list[index_min_dist] = 0
+                    #  else:
+                        #  for j in xrange(num_trajs):
+                            #  traj_position_ = self.trajectories.markers[j].points[-1]
+                            #  traj_velocity_vector_ = self.trajs_velocity_vector_list[j][-1]
+                            #  #  print "traj_position_ : ", traj_position_
+                            #  if traj_position_ == self.dummy_position:
+                                #  self.set_trajectory_parameter(j, time_stamp, \
+                                                              #  position, velocity_vector)
+                    else:
+                        if traj_position == self.dummy_position:
+                            #  print "!!!!!!!!!!!!!!!! New !!!!!!!!!!!!!!"
+                            #  print "!!!!!!!!!!!!!!! add !!!!!!!!!!!!!!!!"
+                            self.set_trajectory_parameter(i, time_stamp, \
+                                                          position, velocity_vector)
+                            self.trajs_no_update_count_list[i] = 0
 
-                            candidate_flag_list = np.array([math.fabs(predict_position.x),\
-                                    math.fabs(predict_position.y)]) \
-                                    <= self.range_constraint
-                            #  print "candidate_flag_list : ", candidate_flag_list
-                            if candidate_flag_list.all():
-                                if self.trajs_no_update_count_list[j] \
-                                        <= self.no_update_count_threshold:
-                                    self.trajs_candidate_list[j][-1] = predict_position
-                                    self.trajs_candidate_velocity_vector_list[j][-1] \
-                                            = before_velocity_vector
             else:
-                print "!!!!!!!! Out of range !!!!!!!!!!"
+                print "!!!!!!! No pedestrian in range !!!!!!"
 
 
-        self.vis_trajectories.markers = copy.deepcopy(self.trajectories.markers)
-        for j in xrange(num_trajs):
-            del self.vis_trajectories.markers[j].points[:]
-            self.vis_trajectories.markers[j].points = self.trajs_candidate_list[j]
 
-            self.trajs_length_list[j] = len(self.trajectories.markers[j].points)
-            self.trajs_velocity_vector_length_list[j] = len(self.trajs_velocity_vector_list[j])
-            self.trajs_candidate_length_list[j] = len(self.trajs_candidate_list[j])
-            self.trajs_candidate_velocity_vector_length_list[j] \
-                    = len(self.trajs_candidate_velocity_vector_list[j])
-
-        print "self.trajs_length_list : ", self.trajs_length_list
-        print "self.trajs_velocoty_vector_length_list : ", self.trajs_velocity_vector_length_list
-        print "self.trajs_candidate_length_list : ", self.trajs_candidate_length_list
-        print "self.trajs_candidate_velocity_vector_length_list : "\
-                , self.trajs_candidate_velocity_vector_length_list
-        print "self.trajs_no_update_count_list : ", self.trajs_no_update_count_list
 
         
+        for j in xrange(num_trajs):
+            self.trajs_length_list[j] = len(self.trajectories.markers[j].points)
+        print "self.trajs_length_list : ", self.trajs_length_list
+
         self.view_trajs_pub.publish(self.trajectories)
-        self.vis_view_trajs_pub.publish(self.vis_trajectories)
+
 
         return self.trajs_length_list
 
 
 def main():
-    cdlt = CreateDatasetLocalMapTrajectory()
-
     rospy.init_node("make_pedestrian_datasets")
+
+    cdlt = CreateDatasetLocalMapTrajectory()
     print "Here we go!!!!"
     
     #  loop_rate = rospy.Rate(20)
