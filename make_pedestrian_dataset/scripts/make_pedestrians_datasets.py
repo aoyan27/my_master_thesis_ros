@@ -80,6 +80,7 @@ class CreateDatasetLocalMapTrajectory:
         self.trajectories.markers = [Marker() for i in xrange(len(self.color_list))]
         
         self.trajs_length_list = [0 for i in xrange(len(self.color_list))]
+        self.trajs_velocity_vector_length_list = [0 for i in xrange(len(self.color_list))]
 
         self.dt = 0.05
         self.velocity_threshold = 5.0    #  歩行者としての速度の上限
@@ -118,15 +119,33 @@ class CreateDatasetLocalMapTrajectory:
 
         self.reset_flag = True
 
-    def save_dataset(self, data, filename):
+
+    def set_save_data(self):
+        self.local_map_and_trajectories_data['map'] = self.grid_map_list
+        self.local_map_and_trajectories_data['traj'] = self.trajectories
+        self.local_map_and_trajectories_data['velocity'] = self.trajs_velocity_vector_list
+
+    def save_dataset(self, no_pedestrian=False):
         print "Now Saving!!!"
+        self.set_save_data()
+
+        date_time = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        #  print "date_time : ", date_time
+        filename = None
+        if not no_pedestrian:
+            filename = self.abs_path +  "%s_scenario_%d_raw_dataset.pkl" \
+                    % (date_time, self.scenario_count)
+        else:
+            filename = self.abs_path +  "_%s_scenario_%d_raw_dataset.pkl" \
+                    % (date_time, self.scenario_count)
+
         print "File : ", filename
         with open(filename, mode='wb') as f:
-            pickle.dump(data, f)
+            pickle.dump(self.local_map_and_trajectories_data, f)
 
 
     def localMapCallback(self, msg):
-        print "========================== localMapCallback ================================"
+        #  print "========================== localMapCallback ================================"
         self.local_map_flag = True
         cell_size = msg.info.resolution
         rows = msg.info.height
@@ -153,7 +172,7 @@ class CreateDatasetLocalMapTrajectory:
                 print "|"
         
     def velocityCallback(self, msg):
-        print "========================== velocityCallback ================================"
+        #  print "========================== velocityCallback ================================"
         #  print "msg : ", msg
         #  print len(msg.markers)
 
@@ -167,21 +186,14 @@ class CreateDatasetLocalMapTrajectory:
                         != np.array([0 for i in xrange(len(self.color_list))])
                 if save_trajs_flag_list.any():
                     self.scenario_count += 1
-                    self.local_map_and_trajectories_data['map'] = self.grid_map_list
-                    self.local_map_and_trajectories_data['traj'] = self.trajectories
-
-                    date_time = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
-                    #  print "date_time : ", date_time
-
-                    filename = self.abs_path +  "_%s_scenario_%d_raw_dataset.pkl" \
-                                    % (date_time, self.scenario_count)
-                    print "filename : ", filename
-                    self.save_dataset(self.local_map_and_trajectories_data, filename)
+                    self.save_dataset(no_pedestrian=True)
 
             self.human_exist = False		
             self.reset_all_variables(msg)
         else:
-            if self.local_map_flag:
+            if not self.local_map_flag:
+                print "============= No Subscribe local map!!! ==========="
+            else:
                 self.human_exist = True
                 self.reset_flag = True
                 self.callback_count += 1
@@ -213,20 +225,8 @@ class CreateDatasetLocalMapTrajectory:
                     self.callback_count_break += 1
                     
                     if self.callback_count_break > self.break_time_threshold:
-                        save_trajs_flag_list = np.array(self.scenario_trajs_length_list) \
-                                        != np.array([0 for i in xrange(len(self.color_list))])
-                        if save_trajs_flag_list.any():
-                            self.scenario_count += 1
-                            self.local_map_and_trajectories_data['map'] = self.grid_map_list
-                            self.local_map_and_trajectories_data['traj'] = self.trajectories
-
-                            date_time = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
-                            #  print "date_time : ", date_time
-
-                            filename = self.abs_path +  "%s_scenario_%d_raw_dataset.pkl" \
-                                            % (date_time, self.scenario_count)
-                            print "filename : ", filename
-                            self.save_dataset(self.local_map_and_trajectories_data, filename)
+                        self.scenario_count += 1
+                        self.save_dataset()
                                 
                         self.reset_all_variables(msg)
 
@@ -249,9 +249,6 @@ class CreateDatasetLocalMapTrajectory:
     def reset_trajectories(self, human_trajs):
         del self.trajectories.markers[:]
         self.trajectories.markers = [Marker() for i in xrange(len(self.color_list))]
-
-        self.trajs_candidate_list = [[] for i in xrange(len(self.color_list))]
-        self.trajs_candidate_velocity_vector_list = [[] for i in xrange(len(self.color_list))]
         
         for i in xrange(len(self.trajectories.markers)):
             self.trajectories.markers[i].type = Marker.LINE_STRIP
@@ -435,12 +432,12 @@ class CreateDatasetLocalMapTrajectory:
                 print "!!!!!!! No pedestrian in range !!!!!!"
 
 
-
-
         
         for j in xrange(num_trajs):
             self.trajs_length_list[j] = len(self.trajectories.markers[j].points)
+            self.trajs_velocity_vector_length_list[j] = len(self.trajs_velocity_vector_list[j])
         print "self.trajs_length_list : ", self.trajs_length_list
+        print "self.trajs_velocity_vectorlength_list : ", self.trajs_velocity_vector_length_list
 
         self.view_trajs_pub.publish(self.trajectories)
 
