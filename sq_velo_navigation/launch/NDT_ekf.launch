@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+	<node pkg="sq_velo_navigation" type="sq_velo_NDT_ekf" name="NDT_ekf" output="screen">
+		<rosparam file="$(find params)/master_thesis/ekf_sigs.yaml" />
+		<!-- <rosparam file="$(find params)/run_test/ekf_sigs.yaml" /> -->
+		<!-- <rosparam file="$(find params)/run_test/init_pose.yaml" /> -->
+	</node>
+
+	<rosparam file="$(find params)/master_thesis/ekf_mode.yaml" />
+	<!-- <rosparam file="$(find params)/run_test/ekf_mode.yaml" /> -->
+	<node pkg="ekf" type="pub_ekf_mode" name="pub_ekf_mode" output="screen" />
+
+</launch>
+

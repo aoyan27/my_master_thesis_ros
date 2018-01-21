@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+	<!-- <rosparam file="$(find params)/run_test/init_pose.yaml" /> -->
+	<rosparam file="$(find params)/master_thesis/init_pose.yaml" />
+	<node name="localization_complement" pkg="sq_velo_navigation" type="sq_velo_complement" output="screen" />
+</launch>

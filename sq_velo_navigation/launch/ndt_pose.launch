@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+	<rosparam file="$(find params)/master_thesis/ndt_maps.yaml" />
+	<!-- <rosparam file="$(find params)/run_test/ndt_maps.yaml" /> -->
+	<!-- <node pkg="ndt" type="ndt_matching_pose_estimation" name="ndt_matching_pose_estimation" output="screen" /> -->
+	<node pkg="sq_velo_navigation" type="sq_velo_ndt_pose_estimation" name="ndt_matching_pose_estimation" output="screen" />
+</launch>
+

@@ -1,0 +1,26 @@
+Localization::Localization(){
+//	sw.start();
+	x = y = yaw = v = w = 0.0;
+	time = 0.0;
+}
+
+Localization::~Localization(){
+}
+
+void Localization::showState(){
+	cout << "x: " << x << ", y: " << y << ", yaw: " << yaw << endl;
+}
+
+void Localization::start(){
+	sw.start();
+}
+
+void Localization::altering(){
+	double dt = sw.getTime();
+	sw.reset();
+	yaw += dt * w;
+	//if(yaw<-M_PI)yaw += 2*M_PI;
+	//if(yaw>M_PI)yaw -= 2*M_PI;
+	x += dt * v * cos(yaw);
+	y += dt * v * sin(yaw);
+}
