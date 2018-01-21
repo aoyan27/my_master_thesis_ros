@@ -25,12 +25,17 @@ import pickle
 
 parser = argparse.ArgumentParser(description='This script is processing_pedestrian_dataset...')
 
+parser.add_argument('-r', '--resize_size', nargs='+', default=[20, 20], type=int, \
+        help='resize_size of grid_map')
+
 parser.add_argument('-ldp', '--load_dataset_path', \
         default='/make_pedestrian_dataset/datasets/raw/test', \
         type=str, help='Please set load dataset_path')
 
 args = parser.parse_args()
 print args
+
+args.resize_size = tuple(args.resize_size)
 
 class ProcessingPedestrianDataset:
     def __init__(self):
@@ -50,16 +55,18 @@ class ProcessingPedestrianDataset:
         self.discreate_movement \
                 = [(0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1), (0, 0)]
 
-        self.height = None
-        self.width = None
-        self.cell_size = 0.25
+        self.height = args.resize_size[0]
+        self.width = args.resize_size[1]
+        self.raw_cell_size = 0.25
+        self.cell_size = None
         self.origin_x = None
         self.origin_y = None
+
 
         self.dummy_position = Point(x=1000.0, y=1000.0, z=1000.0)
 
         self.pickup_index = None
-        self.pedestrian_threshold = 1.0    #  人間の幅を設定
+        self.pedestrian_threshold = 1.5    #  人間の幅を設定
 
         self.file_path \
             = "/home/amsl/ros_catkin_ws/src/master_thesis/make_pedestrian_dataset/datasets/processing/"
@@ -80,6 +87,30 @@ class ProcessingPedestrianDataset:
         else:
             self.abs_path = self.file_path + self.date + "/" + self.locate + "/"
         print "self.abs_path : ", self.abs_path
+
+    def resize_grid(self, grid_list, raw_size, resize_size):
+        print "raw_size : ", raw_size
+        print "resize_size : ", resize_size
+        self.cell_size = float(raw_size[0]) / float(resize_size[0]) * self.raw_cell_size
+        print (raw_size[0] / resize_size[0])
+        print "self.cell_size : ", self.cell_size
+        
+        resize_grid_list = []
+        for grid in grid_list:
+            resize_grid = np.zeros(resize_size, dtype=np.uint8)
+            obs_index = np.where(grid==100)
+            #  print "obs_index : ", obs_index
+            continuous_obs_index = np.asarray(obs_index) * self.raw_cell_size
+            #  print "continuous_obs_index : ", continuous_obs_index
+            resize_obs_index = (continuous_obs_index / self.cell_size).astype(np.int32)
+            #  print "resize_obs_index : ", resize_obs_index
+            resize_grid[tuple(resize_obs_index)] = 1
+            #  print "resize_grid : "
+            #  print resize_grid
+            resize_grid_list.append(resize_grid)
+
+
+        return resize_grid_list
         
 
     def load_raw_dataset(self, filename):
@@ -87,12 +118,13 @@ class ProcessingPedestrianDataset:
             data = None
             data = pickle.load(f)
 
-        self.grid_map_list = data['map']
-        _, self.height, self.width = np.asarray(self.grid_map_list).shape
-        print "self.height, self.width : ", self.height, self.width
-        self.origin_y = self.height * self.cell_size / 2.0
-        self.origin_x = self.width * self.cell_size / 2.0
-        print "self.origin_y, self.origin_x : ", self.origin_y, self.origin_x
+        raw_grid_map_list = data['map']
+        _, raw_height, raw_width = np.asarray(raw_grid_map_list).shape
+        raw_size = (raw_height, raw_width)
+        self.origin_y = raw_height * self.raw_cell_size / 2.0
+        self.origin_x = raw_width * self.raw_cell_size / 2.0
+
+        self.grid_map_list = self.resize_grid(raw_grid_map_list, raw_size, args.resize_size)
 
         self.pedestrian_markers = data['traj']
         print "Load %d grid_map_data!!!" % len(self.grid_map_list)
@@ -129,28 +161,33 @@ class ProcessingPedestrianDataset:
         return image
 
     def get_crcl_range(self, state):
+        #  print "discreate_state : "
+        #  print state
         continuous_state = np.asarray(state) * self.cell_size
-        #  print "cointinuous_state : ", continuous_state
+        #  print "cointinuous_state : "
+        #  print continuous_state
         min_continuous_state = continuous_state - np.array([self.pedestrian_threshold/2]*2)
         min_continuous_state_shape = min_continuous_state.shape
-        #  print min_continuous_state_shape
         min_continuous_state = map(lambda x: 0 if x<0 else x, min_continuous_state.reshape(-1))
         min_continuous_state = np.asarray(min_continuous_state).reshape(min_continuous_state_shape)
-        #  print "min_continuous_state : ", min_continuous_state
+        #  print "min_continuous_state : "
+        #  print min_continuous_state
         
         max_value = (self.width-1) * self.cell_size
         max_continuous_state = continuous_state + np.array([self.pedestrian_threshold/2]*2)
         max_continuous_state_shape = max_continuous_state.shape
-        #  print max_continuous_state_shape
         max_continuous_state = map(lambda x: max_value \
                 if x>max_value else x, max_continuous_state.reshape(-1))
         max_continuous_state = np.asarray(max_continuous_state).reshape(max_continuous_state_shape)
-        #  print "max_continuous_state : ", max_continuous_state
+        #  print "max_continuous_state : "
+        #  print max_continuous_state
 
         min_discreate_state = (min_continuous_state / self.cell_size).astype(np.int32)
-        #  print "min_discreate_state : ", min_discreate_state
+        #  print "min_discreate_state : "
+        #  print min_discreate_state
         max_discreate_state = (max_continuous_state / self.cell_size).astype(np.int32)
-        #  print "max_discreate_state : ", max_discreate_state
+        #  print "max_discreate_state : "
+        #  print max_discreate_state
 
         return min_discreate_state, max_discreate_state
     
@@ -163,8 +200,8 @@ class ProcessingPedestrianDataset:
         num_state_list_size = len(state_list)
         if num_state_list_size != 0:
             #  print "processing!!"
+            min_discreate_state, max_discreate_state = self.get_crcl_range(state_list)
             for j in xrange(num_state_list_size):
-                min_discreate_state, max_discreate_state = self.get_crcl_range(state_list)
                 image_list_[pickup_index[j]]\
                         [min_discreate_state[j][0]:max_discreate_state[j][0], \
                          min_discreate_state[j][1]:max_discreate_state[j][1]] = 0
@@ -347,8 +384,7 @@ def main():
     if len(directory) != 0:
         ppd.load_raw_dataset(args.load_dataset_path+directory[0])
     
-    rows = ppd.height
-    cols = ppd.width
+    rows, cols = args.resize_size
     max_samples = 10000
     print "max_samples : ", max_samples
     image_data = np.zeros((max_samples, rows, cols))
