@@ -8,6 +8,7 @@
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <tf/transform_datatypes.h>
+#include <knm_tiny_msgs/Velocity.h>
 
 #include <stdio.h>
 #include <math.h>
@@ -128,7 +129,7 @@ void set_vis_traj(vector<geometry_msgs::PoseStamped> traj,
 	marker.color.a = 1.0;
 
 	// marker.lifetime = ros::Duration(0.1);
-	marker.lifetime = ros::Duration(0.05);
+	marker.lifetime = ros::Duration(0.01);
 	
 	for(size_t i=0; i<traj_size; i++){
 		marker.points.push_back(traj[i].pose.position);
@@ -236,13 +237,13 @@ double check_goal_heading(vector<geometry_msgs::PoseStamped> traj, geometry_msgs
 	geometry_msgs::PoseStamped final_pose;
 	vector<geometry_msgs::PoseStamped>::iterator itr = traj.end()-1;
 	final_pose = *itr;
-	cout<<"final_pose : "<<final_pose<<endl;
+	// cout<<"final_pose : "<<final_pose<<endl;
 	double final_yaw = tf::getYaw(final_pose.pose.orientation);
-	cout<<"final_yaw : "<<final_yaw<<endl;
-	cout<<"target : "<<target<<endl;
+	// cout<<"final_yaw : "<<final_yaw<<endl;
+	// cout<<"target : "<<target<<endl;
 	double goal_theta = atan2(target.y-final_pose.pose.position.y, 
 							  target.x-final_pose.pose.position.x);
-	cout<<"goal_theta : "<<goal_theta<<endl;
+	// cout<<"goal_theta : "<<goal_theta<<endl;
 	double target_theta;
 	if(goal_theta > final_yaw){
 		target_theta = goal_theta - final_yaw;
@@ -263,9 +264,9 @@ vector<double> evaluation_trajectories(vector<double> Vr, vector<double> sample_
 	int i = 0;
 	for(double linear=Vr[0]; linear<=Vr[1]; linear+=sample_resolutions[0]){
 		for(double angular=Vr[2]; angular<Vr[3]; angular+=sample_resolutions[1]){
-			cout<<"============== i : "<<i<<" ============ "<<endl;
-			cout<<"linear : "<<linear<<endl;
-			cout<<"angular : "<<angular<<endl;
+			// cout<<"============== i : "<<i<<" ============ "<<endl;
+			// cout<<"linear : "<<linear<<endl;
+			// cout<<"angular : "<<angular<<endl;
 			vector<geometry_msgs::PoseStamped> trajectory;
 			trajectory = get_future_trajectory(linear, angular, SIM_TIME, dt);
 			double eval_obs_dist = check_nearest_obs_dist(trajectory, obs_position);
@@ -301,8 +302,8 @@ vector<double> evaluation_trajectories(vector<double> Vr, vector<double> sample_
 			max_eval_index = i;
 		}
 	}
-	cout<<"max_total_eval : "<<max_total_eval<<endl;
-	cout<<"max_eval_index : "<<max_eval_index<<endl;
+	// cout<<"max_total_eval : "<<max_total_eval<<endl;
+	// cout<<"max_eval_index : "<<max_eval_index<<endl;
 
 	selected_path = get_selected_path(path_candidate, max_eval_index);
 	double selected_linear = path_and_eval_list[max_eval_index][0];
@@ -394,7 +395,7 @@ void set_target_marker(geometry_msgs::Point target, visualization_msgs::Marker &
 	marker.color.a = 1.0;
 
 	// marker.lifetime = ros::Duration(0.1);
-	marker.lifetime = ros::Duration(0.05);
+	marker.lifetime = ros::Duration(0.01);
 
 	marker.pose.position = target;
 }
@@ -451,6 +452,7 @@ int main(int argc, char** argv)
 	ros::Subscriber lcl_sub = n.subscribe("/lcl5", 1, lclCallback);
 	ros::Subscriber vin_next_targe_sub = n.subscribe("/vin/next_target", 1, vinNextTargetCallback);
 
+	ros::Publisher cmd_vel_pub = n.advertise<knm_tiny_msgs::Velocity>("/control_command", 1);
 	ros::Publisher vis_path_selected_pub = n.advertise<visualization_msgs::Marker>("/vis_path/selected", 1);
 	ros::Publisher vis_path_candidate_pub = n.advertise<visualization_msgs::MarkerArray>("/vis_path/candidate", 1);
 	vis_target_pub = n.advertise<visualization_msgs::Marker>("/vin/next_target/vis", 1);
@@ -458,8 +460,8 @@ int main(int argc, char** argv)
 	cout<<"Here we go!!"<<endl;
 
 	ros::Rate loop_rate(40);
-	// double dt = 1.0 / 40.0;
-	double dt = 0.1;
+	double dt = 1.0 / 40.0;
+	// double dt = 0.1;
 
 	while(ros::ok()){
 		// cout<<"**********************"<<endl;
@@ -477,15 +479,21 @@ int main(int argc, char** argv)
 			velocity_vector = evaluation_trajectories(Vr, sample_resolutions, dt);
 			cout<<"linear : "<<velocity_vector[0]<<endl;
 			cout<<"angular : "<<velocity_vector[1]<<endl;
+
+			knm_tiny_msgs::Velocity control_command;
+			control_command.op_linear = velocity_vector[0];
+			control_command.op_angular = velocity_vector[1];
+			cmd_vel_pub.publish(control_command);
+
 			// vis_path_single_pub.publish(vis_traj);
 			vis_path_candidate_pub.publish(path_candidate);
 			vis_path_selected_pub.publish(selected_path);
 			clock_t end = clock();
 			cout<<"duration : "<<(double)(end - start) / CLOCKS_PER_SEC<<"[sec]"<<endl;
 
-			sub_local_map = false;
-			sub_lcl = false;
-			sub_next_target = false;
+			// sub_local_map = false;
+			// sub_lcl = false;
+			// sub_next_target = false;
 		}
 
 		loop_rate.sleep();

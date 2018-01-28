@@ -515,7 +515,7 @@ def main(model_path, gpu):
 
 
             
-            agent.show_path(input_data, state_data)
+            #  agent.show_path(input_data, state_data)
 
             elapsed_time = time.time() - start_time
             print ("elapsed_time:{0}".format(elapsed_time) + "[sec]")

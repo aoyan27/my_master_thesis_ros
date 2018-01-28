@@ -1,5 +1,5 @@
 dwa:
-    max_velocity: 1.0
+    max_velocity: 1.2
     min_velocity: 0.0
     max_rotation_velocity: 10.0
     acceleraton_limit_translation: 0.5
