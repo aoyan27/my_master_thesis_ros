@@ -1,0 +1,9 @@
+dwa:
+    max_velocity: 1.0
+    min_velocity: 0.0
+    max_rotation_velocity: 10.0
+    acceleraton_limit_translation: 0.5
+    acceleraton_limit_rotation: 0.20
+    velocity_samples: 10
+    rotation_velocity_samples: 20
+    simulation_time: 4.0
