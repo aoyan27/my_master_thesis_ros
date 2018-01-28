@@ -21,6 +21,7 @@ import copy
 import math
 from datetime import *
 
+
 import pickle
 
 parser = argparse.ArgumentParser(description='This script is processing_pedestrian_dataset...')
@@ -251,7 +252,7 @@ class ProcessingPedestrianDataset:
             #  print "marker_array.markers[", i, "] : "
             #  print marker_array.markers[i].points
             single_pedestrian_state_list = None
-            no_dummy_state_list = list(filter(lambda x: x!=self.dummy_position, \
+            no_dummy_state_list = list(filter(lambda a: a.z!=self.dummy_position.z, \
                                               marker_array.markers[i].points))
             #  print "no_dummy_state_list : ", no_dummy_state_list
             if len(no_dummy_state_list) != 0:
@@ -405,7 +406,7 @@ def main():
 
         ns = 0
         for i in xrange(num_pedestrians):
-            print "======================== i : ", i, "========================="
+            #  print "======================== i : ", i, "========================="
             ns = len(ppd.dataset_state_list[i])
             if ns == 0:
                 continue
