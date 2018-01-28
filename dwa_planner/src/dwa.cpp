@@ -269,6 +269,7 @@ vector<double> evaluation_trajectories(vector<double> Vr, vector<double> sample_
 			// cout<<"angular : "<<angular<<endl;
 			vector<geometry_msgs::PoseStamped> trajectory;
 			trajectory = get_future_trajectory(linear, angular, SIM_TIME, dt);
+			cout<<"trajectory_size : "<<trajectory.size()<<endl;
 			double eval_obs_dist = check_nearest_obs_dist(trajectory, obs_position);
 			// cout<<"eval_obs_dist : "<<eval_obs_dist<<endl;
 			double eval_vel = fabs(linear);
@@ -471,7 +472,7 @@ int main(int argc, char** argv)
 			Vr = get_DynamicWindow(current_state, dt);
 			vector<double> sample_resolutions;
 			sample_resolutions = get_sample_resolution(Vr, VEL_SAMPLES, ROT_VEL_SAMPLES);
-			vector<geometry_msgs::PoseStamped> trajectory;
+			// vector<geometry_msgs::PoseStamped> trajectory;
 			// trajectory = get_future_trajectory(Vr[0], Vr[2], SIM_TIME, dt);
 			// visualization_msgs::Marker vis_traj;
 			// set_vis_traj(trajectory, vis_traj, 0);
