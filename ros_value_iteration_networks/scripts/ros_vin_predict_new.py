@@ -508,15 +508,15 @@ def main(model_path, gpu):
             layout = MultiArrayDimension()
             layout.size = idg.input_image_size[0]
             ros_next_state.layout.dim.append(layout)
-            #  ros_next_state.data = next_state
-            #  print "ros_next_state : ", ros_next_state
-            #  next_target_pub.publish(ros_next_state)
+            ros_next_state.data = next_state
+            print "ros_next_state : ", ros_next_state
+            next_target_pub.publish(ros_next_state)
 
             
-            agent.show_path(input_data, state_data)
-            print "agent.traj_state_list : ", agent.traj_state_list
-            ros_next_state.data = agent.traj_state_list[-1]
-            next_target_pub.publish(ros_next_state)
+            #  agent.show_path(input_data, state_data)
+            #  print "agent.traj_state_list : ", agent.traj_state_list
+            #  ros_next_state.data = agent.traj_state_list[-1]
+            #  next_target_pub.publish(ros_next_state)
 
             elapsed_time = time.time() - start_time
             print ("elapsed_time:{0}".format(elapsed_time) + "[sec]")
