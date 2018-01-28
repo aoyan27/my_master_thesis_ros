@@ -26,7 +26,7 @@ using namespace std;
 
 #define COST_OBS 10.0
 #define COST_VEL 1.0
-#define COST_HEAD 1.0
+#define COST_HEAD 7.0
 
 
 double MAX_VEL;
