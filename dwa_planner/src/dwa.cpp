@@ -24,9 +24,9 @@
 
 using namespace std;
 
-#define COST_OBS 1.0
+#define COST_OBS 10.0
 #define COST_VEL 1.0
-#define COST_HEAD 10.0
+#define COST_HEAD 1.0
 
 
 double MAX_VEL;
@@ -129,7 +129,7 @@ void set_vis_traj(vector<geometry_msgs::PoseStamped> traj,
 	marker.color.a = 1.0;
 
 	// marker.lifetime = ros::Duration(0.1);
-	marker.lifetime = ros::Duration(0.01);
+	marker.lifetime = ros::Duration(0.025);
 	
 	for(size_t i=0; i<traj_size; i++){
 		marker.points.push_back(traj[i].pose.position);
@@ -395,7 +395,7 @@ void set_target_marker(geometry_msgs::Point target, visualization_msgs::Marker &
 	marker.color.a = 1.0;
 
 	// marker.lifetime = ros::Duration(0.1);
-	marker.lifetime = ros::Duration(0.01);
+	marker.lifetime = ros::Duration(0.025);
 
 	marker.pose.position = target;
 }
@@ -460,8 +460,8 @@ int main(int argc, char** argv)
 	cout<<"Here we go!!"<<endl;
 
 	ros::Rate loop_rate(40);
-	double dt = 1.0 / 40.0;
-	// double dt = 0.1;
+	// double dt = 1.0 / 40.0;
+	double dt = 0.1;
 
 	while(ros::ok()){
 		// cout<<"**********************"<<endl;
@@ -482,7 +482,7 @@ int main(int argc, char** argv)
 
 			knm_tiny_msgs::Velocity control_command;
 			control_command.op_linear = velocity_vector[0];
-			control_command.op_angular = velocity_vector[1];
+			control_command.op_angular = -1.0*velocity_vector[1];
 			cmd_vel_pub.publish(control_command);
 
 			// vis_path_single_pub.publish(vis_traj);
