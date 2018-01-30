@@ -50,6 +50,7 @@ class InputDataGenerator:
         self.grid_map = None
         self.lcl = None
         self.local_goal = None
+        self.discreate_local_goal = None
 
         self.gridmap_sub_flag = False
         self.lcl_sub_flag = False
@@ -186,6 +187,7 @@ class InputDataGenerator:
 
         #  print "grid_x : ", grid_x
         #  print "grid_y : ", grid_y
+        self.discreate_local_goal = [grid_y, grid_x]
 
         reward_map = np.zeros(self.input_image_size, dtype=np.uint8)
         reward_map[grid_y, grid_x] = 1
@@ -218,8 +220,8 @@ class InputDataGenerator:
 
 
 class ValueIterationNetworkAgent:
-    def __init__(self, model_path, gpu, mode=1):
-        self.mode = 1
+    def __init__(self, model_path, gpu, input_image_size, mode=1):
+        self.mode = mode
 
         self.model = ValueIterationNetwork(l_q=9, n_out=9, k=25)
         self.load_model(model_path)
@@ -238,6 +240,9 @@ class ValueIterationNetworkAgent:
         self.traj_state_list = []
         self.traj_action_list = []
 
+        self.max_challenge_times = input_image_size[0]/2 + input_image_size[1]/2
+        #  print "max_challenge_times : ", max_challenge_times
+
     def set_action(self):
         if self.mode == 0:    # mode=0 : 行動4パターン
             self.action_list = [0, 1, 2, 3, 4]
@@ -248,6 +253,9 @@ class ValueIterationNetworkAgent:
             self.n_action = len(self.action_list)
             self.dirs = \
                     {0: '>', 1: '<', 2: 'v', 3: '^', 4: 'ur', 5: 'ul', 6: 'dr', 7: 'dl', 8: '-'}
+            self.movement \
+                = {0: [0, 1], 1: [0, -1], 2: [1, 0], 3: [-1, 0], \
+                   4: [-1, 1], 5: [-1, -1], 6: [1, 1], 7: [1, -1], 8: [0, 0]}
 
     def load_model(self, filename):
         print "Load {}!!".format(filename)
@@ -263,88 +271,12 @@ class ValueIterationNetworkAgent:
 
     def move(self, state, action, grid_data, reflect=1):
         grid_range = [grid_data.shape[0], grid_data.shape[1]]
+
         y, x = state
         next_y, next_x = state
         
-        if self.mode == 0:
-            if action == 0:
-                #  right
-                next_x = x + reflect*1
-            elif action == 1:
-                #  left
-                next_x = x - reflect*1
-            elif action == 2:
-                #  down
-                next_y = y + reflect*1
-            elif action == 3:
-                #  up
-                next_y = y - reflect*1
-            else:
-                #  stay
-                next_x = x
-                next_y = y
-        elif self.mode == 1:
-            if action == 0:
-                #  right
-                next_x = x + reflect*1
-            elif action == 1:
-                #  left
-                next_x = x - reflect*1
-            elif action == 2:
-                #  down
-                next_y = y + reflect*1
-            elif action == 3:
-                #  up
-                next_y = y - reflect*1
-            elif action == 4:
-                # upper right
-                next_x = x + reflect*1
-                next_y = y - reflect*1
-            elif action == 5:
-                # upper left
-                next_x = x - reflect*1
-                next_y = y - reflect*1
-            elif action == 6:
-                # down right
-                next_x = x + reflect*1
-                next_y = y + reflect*1
-            elif action == 7:
-                # down left
-                next_x = x - reflect*1
-                next_y = y + reflect*1
-            else:
-                #  stay
-                next_x = x
-                next_y = y
-        elif self.mode == 2:
-            if action == 0:
-                #  down
-                next_y = y + reflect*1
-            elif action == 1:
-                #  up
-                next_y = y - reflect*1
-            elif action == 2:
-                # upper right
-                next_x = x + reflect*1
-                next_y = y - reflect*1
-            elif action == 3:
-                # upper left
-                next_x = x - reflect*1
-                next_y = y - reflect*1
-            elif action == 4:
-                # down right
-                next_x = x + reflect*1
-                next_y = y + reflect*1
-            elif action == 5:
-                # down left
-                next_x = x - reflect*1
-                next_y = y + reflect*1
-            else:
-                #  stay
-                next_x = x
-                next_y = y
-        #  print "next_x : ", next_x
-        #  print "next_y : ", next_y
+        next_y = y + reflect*self.movement[int(action)][0]
+        next_x = x + reflect*self.movement[int(action)][1]
         
         out_of_range = False
         if next_y < 0 or (grid_range[0]-1) < next_y:
@@ -365,60 +297,37 @@ class ValueIterationNetworkAgent:
                 #  next_x = x
             #  elif action == 2 or action == 3:
                 #  next_y = y
-        next_state = [next_y, next_x]
 
-        return next_state, out_of_range, collision
+        return [next_y, next_x], out_of_range, collision
 
-    def get_path(self, input_data, state_data):
+
+    def get_path(self, input_data, state_data, local_goal):
         state_list = []
-        action_list = []
 
-        state_data_ = copy.deepcopy(state_data)
-        state = state_data_[0]
-        #  print "state : ", state
-        #  print input_data
         self.input_data_ = input_data
         grid_image = input_data[0][0]
-        reward_map = input_data[0][1]
-        #  print "reward_map : ", reward_map
-        local_goal_index = None
-        if isinstance(reward_map, chainer.cuda.ndarray):
-            reward_map = cuda.to_cpu(reward_map)
-            local_goal_index = np.where(reward_map == 1)
-        else:
-            local_goal_index = np.where(reward_map == 1)
-        #  print "local_goal_index : ", local_goal_index
-        max_challenge_times = grid_image.shape[0] + grid_image.shape[1]
-        #  print "max_challenge_times : ", max_challenge_times
-        challenge_times = 0
-        resign = False
-        
-        while tuple(state) != local_goal_index:
-            challenge_times += 1
-            if challenge_times >= max_challenge_times:
-                #  state_list = []
-                #  action_list = []
-                resign = True
-                break
-            
-            action = self.get_action(input_data, state_data_)
 
-            #  print "action : ", action, " (", self.dirs[action], ")"
-
-            next_state, _, _ = self.move(state, action, grid_image)
-            #  print "next_state : ", next_state
-
-            state_list.append(list(state))
-            action_list.append(action)
-
-            state_data_[0] = next_state
-            state = next_state
+        state_data_ = copy.deepcopy(state_data)
+        #  print "state_data_ : ", state_data_, type(state_data_)
+        state = state_data_[0]
+        #  print "state : ", state, type(state)
         state_list.append(list(state))
+        #  print "state_list : ", state_list
 
-        return state_list, action_list, resign
 
-    def show_path(self, input_data, state_data):
-        state_list, action_list, resign = self.get_path(input_data, state_data)
+        for i in xrange(self.max_challenge_times):
+            state_list.append(\
+                    self.move(state, self.get_action(input_data, state_data_), grid_image)[0])
+
+            state_data_[0] = state_list[-1]
+            if state_list[-1] == local_goal:
+                break
+
+        self.traj_state_list = state_list
+
+
+    def show_path(self, input_data, state_data, local_goal):
+        state_list, action_list, resign = self.get_path(input_data, state_data, local_goal)
         self.traj_state_list = state_list
         self.traj_action_list = action_list
 
@@ -473,7 +382,7 @@ def main(model_path, gpu):
 
     next_target_pub = rospy.Publisher("/vin/next_target", Int32MultiArray, queue_size=1)
 
-    agent = ValueIterationNetworkAgent(model_path, gpu)
+    agent = ValueIterationNetworkAgent(model_path, gpu, idg.input_image_size)
     
     input_data = None
     #  state = [10, 6]
@@ -484,55 +393,57 @@ def main(model_path, gpu):
 
     loop_rate = rospy.Rate(100)
 
+    ros_next_state = Int32MultiArray()
+    layout = MultiArrayDimension()
+    layout.size = idg.input_image_size[0]
+
     print "Here we go!!"
 
     while not rospy.is_shutdown():
         if idg.gridmap_sub_flag and idg.local_goal_sub_flag and idg.grid_image is not None:
             print "*****************************************"
+            start_time = time.time()
             idg.cvt_input_data()
             #  print "idg.input_data"
             #  print idg.input_data
             input_data = idg.input_data
             if gpu >= 0:
                 input_data = cuda.to_gpu(input_data)
-            print "state_data : ", state_data
+            #  print "state_data : ", state_data
             
-            start_time = time.time()
-            action = agent.get_action(input_data, state_data)
-            print "action : ", action, "(", agent.dirs[int(action)], ")"
-            next_state, out_of_range, collision = agent.move(state_data[0], action, input_data[0][0])
-            print "next_state : ", next_state
-            print "out_of_range : ", out_of_range
-            print "collision : ", collision
-            ros_next_state = Int32MultiArray()
-            layout = MultiArrayDimension()
-            layout.size = idg.input_image_size[0]
-            ros_next_state.layout.dim.append(layout)
+            #  action = agent.get_action(input_data, state_data)
+            #  print "action : ", action, "(", agent.dirs[int(action)], ")"
+            #  next_state, out_of_range, collision \
+                    #  = agent.move(state_data[0], action, input_data[0][0])
+            #  print "next_state : ", next_state
+            #  print "out_of_range : ", out_of_range
+            #  print "collision : ", collision
+            #  ros_next_state.layout.dim.append(layout)
             #  ros_next_state.data = next_state
             #  print "ros_next_state : ", ros_next_state
             #  next_target_pub.publish(ros_next_state)
-
             
-            agent.show_path(input_data, state_data)
+            agent.get_path(input_data, state_data, idg.discreate_local_goal)
+            #  agent.show_path(input_data, state_data, idg.discreate_local_goal)
             print "agent.traj_state_list : ", agent.traj_state_list
-            ros_next_state.data = agent.traj_state_list[-1]
+            #  ros_next_state.data = agent.traj_state_list
+            ros_next_state.data = np.asarray(agent.traj_state_list).reshape(-1)
             next_target_pub.publish(ros_next_state)
 
             elapsed_time = time.time() - start_time
             print ("elapsed_time:{0}".format(elapsed_time) + "[sec]")
-
             
-            idg.gridmap_sub_flag = False
-            idg.local_goal_sub_flag = False
+            #  idg.gridmap_sub_flag = False
+            #  idg.local_goal_sub_flag = False
 
         loop_rate.sleep()
-        #  rospy.spin()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='This script is ros_vin_predict ...')
     parser.add_argument('-g', '--gpu', default=-1, type=int, help='number of gpu device')
     parser.add_argument('-m', '--model_path', \
-            default='/home/amsl/ros_catkin_ws/src/master_thesis/ros_value_iteration_networks/models/vin_model_1.model', type=str, help="load model path")
+        default='/home/amsl/ros_catkin_ws/src/master_thesis/ros_value_iteration_networks/models/vin_model_50_epoch_5000_domain_9_action_20x20_40_to_0_n_objects_seed_0/vin_model_46.model', \
+        type=str, help="load model path")
 
     args = parser.parse_args()
     print args
