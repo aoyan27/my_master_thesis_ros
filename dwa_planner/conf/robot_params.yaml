@@ -3,8 +3,10 @@ dwa:
     min_velocity: 0.5
     max_rotation_velocity: 10.0
     acceleraton_limit_translation: 7.0
-    acceleraton_limit_rotation: 4.00
+    acceleraton_limit_rotation: 10.00
     velocity_samples: 10
     rotation_velocity_samples: 20
-    # simulation_time: 0.25
-    simulation_time: 4.0
+    simulation_time: 1.0
+    cost_nearest_obstacle: 10.0
+    cost_velocity: 1.0
+    cost_goal_heading: 7.0
