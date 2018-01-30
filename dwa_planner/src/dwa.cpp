@@ -24,9 +24,6 @@
 
 using namespace std;
 
-#define COST_OBS 10.0
-#define COST_VEL 1.0
-#define COST_HEAD 7.0
 
 
 double MAX_VEL;
@@ -34,9 +31,14 @@ double MIN_VEL;
 double MAX_ROT_VEL;
 double ACC_LIM_TRANS;
 double ACC_LIM_ROT;
+
 double VEL_SAMPLES;
 double ROT_VEL_SAMPLES;
+
 double SIM_TIME;
+double COST_OBS;
+double COST_VEL;
+double COST_HEAD;
 
 visualization_msgs::MarkerArray path_candidate;
 visualization_msgs::Marker selected_path;
@@ -269,7 +271,7 @@ vector<double> evaluation_trajectories(vector<double> Vr, vector<double> sample_
 			// cout<<"angular : "<<angular<<endl;
 			vector<geometry_msgs::PoseStamped> trajectory;
 			trajectory = get_future_trajectory(linear, angular, SIM_TIME, dt);
-			cout<<"trajectory_size : "<<trajectory.size()<<endl;
+			// cout<<"trajectory_size : "<<trajectory.size()<<endl;
 			double eval_obs_dist = check_nearest_obs_dist(trajectory, obs_position);
 			// cout<<"eval_obs_dist : "<<eval_obs_dist<<endl;
 			double eval_vel = fabs(linear);
@@ -431,6 +433,10 @@ void print_param(){
 	printf("acceleraton_limit_rotation : %.4f\n", ACC_LIM_ROT);	
 	printf("velocity_samples : %.4f\n", VEL_SAMPLES);	
 	printf("rotation_velocity_samples : %.4f\n", ROT_VEL_SAMPLES);	
+	printf("simulation_time : %.3f\n", SIM_TIME);	
+	printf("cost_nearest_obstacle : %.3f\n", COST_OBS);	
+	printf("cost_velocity : %.3f\n", COST_VEL);	
+	printf("cost_goal_heading : %.3f\n", COST_HEAD);	
 }
 
 int main(int argc, char** argv)
@@ -446,6 +452,9 @@ int main(int argc, char** argv)
 	n.getParam("/dwa/velocity_samples", VEL_SAMPLES);
 	n.getParam("/dwa/rotation_velocity_samples", ROT_VEL_SAMPLES);
 	n.getParam("/dwa/simulation_time", SIM_TIME);
+	n.getParam("/dwa/cost_nearest_obstacle", COST_OBS);
+	n.getParam("/dwa/cost_velocity", COST_VEL);
+	n.getParam("/dwa/cost_goal_heading", COST_HEAD);
 	print_param();
 
 
