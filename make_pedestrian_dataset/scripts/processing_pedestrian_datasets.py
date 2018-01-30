@@ -90,11 +90,11 @@ class ProcessingPedestrianDataset:
         print "self.abs_path : ", self.abs_path
 
     def resize_grid(self, grid_list, raw_size, resize_size):
-        print "raw_size : ", raw_size
-        print "resize_size : ", resize_size
+        #  print "raw_size : ", raw_size
+        #  print "resize_size : ", resize_size
         self.cell_size = float(raw_size[0]) / float(resize_size[0]) * self.raw_cell_size
-        print (raw_size[0] / resize_size[0])
-        print "self.cell_size : ", self.cell_size
+        #  print (raw_size[0] / resize_size[0])
+        #  print "self.cell_size : ", self.cell_size
         
         resize_grid_list = []
         for grid in grid_list:
@@ -128,10 +128,10 @@ class ProcessingPedestrianDataset:
         self.grid_map_list = self.resize_grid(raw_grid_map_list, raw_size, args.resize_size)
 
         self.pedestrian_markers = data['traj']
-        print "Load %d grid_map_data!!!" % len(self.grid_map_list)
-        for i in xrange(len(self.pedestrian_markers.markers)):
-            print "Load %d pedestrian_trajectory data!!!" \
-                    % len(self.pedestrian_markers.markers[i].points)
+        #  print "Load %d grid_map_data!!!" % len(self.grid_map_list)
+        #  for i in xrange(len(self.pedestrian_markers.markers)):
+            #  print "Load %d pedestrian_trajectory data!!!" \
+                    #  % len(self.pedestrian_markers.markers[i].points)
 
     def view_image(self, array, title):
         image = cv.cvtColor(array.astype(np.uint8), cv.COLOR_GRAY2RGB)
@@ -386,7 +386,7 @@ def main():
         ppd.load_raw_dataset(args.load_dataset_path+directory[0])
     
     rows, cols = args.resize_size
-    max_samples = 10000
+    max_samples = 100000
     print "max_samples : ", max_samples
     image_data = np.zeros((max_samples, rows, cols))
     reward_map_data = np.zeros((max_samples, rows, cols))
@@ -410,7 +410,7 @@ def main():
             ns = len(ppd.dataset_state_list[i])
             if ns == 0:
                 continue
-            print "ns : ", ns
+            #  print "ns : ", ns
             #  for k in xrange(ns):
                 #  ppd.view_image(ppd.dataset_image_list[i][k], 'grid_map')
 

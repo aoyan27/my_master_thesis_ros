@@ -42,7 +42,7 @@ class CreateDatasetLocalMapTrajectory:
         self.view_trajs_pub = rospy.Publisher("/view_trajs", MarkerArray, queue_size=1)
 
         np.random.seed(0)
-        self.max_human = 1000
+        self.max_human = 3000
         self.color_list = [ColorRGBA(r=np.random.rand(), g=np.random.rand(), b=np.random.rand(), \
                                      a=1.0) for i in xrange(self.max_human)]
 
@@ -55,7 +55,7 @@ class CreateDatasetLocalMapTrajectory:
         self.trajs_velocity_vector_length_list = [0 for i in xrange(len(self.color_list))]
 
         self.dt = 0.05
-        self.run_time_threshold = 720.0 / self.dt
+        self.run_time_threshold = 7200.0 / self.dt
         self.callback_count = 0    #  データセット作成する時間を計るをためのパラメータ(30秒保存)
 
 
