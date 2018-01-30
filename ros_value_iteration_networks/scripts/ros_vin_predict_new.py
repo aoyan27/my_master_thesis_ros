@@ -326,52 +326,19 @@ class ValueIterationNetworkAgent:
         self.traj_state_list = state_list
 
 
-    def show_path(self, input_data, state_data, local_goal):
-        state_list, action_list, resign = self.get_path(input_data, state_data, local_goal)
-        self.traj_state_list = state_list
-        self.traj_action_list = action_list
-
-        grid_image = input_data[0][0]
-        reward_map = input_data[0][1]
-        n_local_state = grid_image.shape[0] * grid_image.shape[1]
-        local_goal_index = None
-        if isinstance(reward_map , chainer.cuda.ndarray):
-            local_goal_index = cp.where(reward_map == 1)
-        else:
-            local_goal_index = np.where(reward_map == 1)
-
-        index = None
-        if isinstance(grid_image, chainer.cuda.ndarray):
-            index = cp.where(grid_image == 1)
-        else:
-            index = np.where(grid_image == 1)
-        vis_path = None
-        if isinstance(grid_image, chainer.cuda.ndarray):
-            vis_path = cp.array([0]*n_local_state).reshape(grid_image.shape)
-        else:
-            vis_path = np.array([0]*n_local_state).reshape(grid_image.shape)
-
-        vis_path[index] = 15
-        state_list = np.asarray(state_list)
-        for i in xrange(len(state_list)):
-            vis_path[tuple(state_list[i])] = 20
-            if tuple(state_list[i]) == local_goal_index:
-                vis_path[tuple(local_goal_index)] = 30
-        vis_path[state_data[0][0], state_data[0][1]] = 40
-
-        path_data = {}
-        path_data['vis_path'] = vis_path
-        path_data['state_list'] = state_list
-        path_data['action_list'] = action_list
-
-        self.view_path(path_data['vis_path'])
-
-    def view_path(self, path):
-        grid = copy.deepcopy(path)
+    def view_path(self, input_image, path):
+        grid = copy.deepcopy(input_image[0][0])
+        for state in path:
+            grid[tuple(state)] = 2
         for row in grid:
             print "|",
             for i in row:
-                print "%2.0f" % i,
+                if i==0:
+                    print "-",
+                elif i==1:
+                    print "#",
+                elif i==2:
+                    print "*",
             print "|"
 
 
@@ -380,7 +347,7 @@ def main(model_path, gpu):
 
     idg = InputDataGenerator()
 
-    next_target_pub = rospy.Publisher("/vin/next_target", Int32MultiArray, queue_size=1)
+    next_target_pub = rospy.Publisher("/vin/target_path", Int32MultiArray, queue_size=1)
 
     agent = ValueIterationNetworkAgent(model_path, gpu, idg.input_image_size)
     
@@ -396,6 +363,7 @@ def main(model_path, gpu):
     ros_next_state = Int32MultiArray()
     layout = MultiArrayDimension()
     layout.size = idg.input_image_size[0]
+    ros_next_state.layout.dim.append(layout)
 
     print "Here we go!!"
 
@@ -418,15 +386,14 @@ def main(model_path, gpu):
             #  print "next_state : ", next_state
             #  print "out_of_range : ", out_of_range
             #  print "collision : ", collision
-            #  ros_next_state.layout.dim.append(layout)
             #  ros_next_state.data = next_state
             #  print "ros_next_state : ", ros_next_state
             #  next_target_pub.publish(ros_next_state)
             
             agent.get_path(input_data, state_data, idg.discreate_local_goal)
-            #  agent.show_path(input_data, state_data, idg.discreate_local_goal)
             print "agent.traj_state_list : ", agent.traj_state_list
-            #  ros_next_state.data = agent.traj_state_list
+            #  agent.view_path(input_data ,agent.traj_state_list)
+
             ros_next_state.data = np.asarray(agent.traj_state_list).reshape(-1)
             next_target_pub.publish(ros_next_state)
 
