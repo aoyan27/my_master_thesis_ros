@@ -296,18 +296,45 @@ double check_inverse_target_path_dist(vector<geometry_msgs::PoseStamped> traj,
 	vector<geometry_msgs::PoseStamped>::iterator itr = traj.end()-1;
 	final_pose = *itr;
 	// cout<<"final_pose : "<<final_pose<<endl;
-	double min_dist = dist_line_and_point(target_traj[0], target_traj[1], final_pose.pose.position);
 	size_t target_traj_size = target_traj.size();
-	for(size_t i=1; i<target_traj_size-1; i++){
-		double dist = dist_line_and_point(target_traj[i], target_traj[i+1], final_pose.pose.position);
-		// cout<<"dist : "<<dist<<endl;
-		if(dist < min_dist){
-			min_dist = dist;
+	double min_dist;
+	if(target_traj_size < 2){
+		min_dist = dist_vector(target_traj[0], final_pose.pose.position);
+		// cout<<"min_dist_ : "<<min_dist<<endl;
+	} 
+	else{
+		vector<double> dist_list;
+		for(size_t i=0; i<target_traj_size; i++){
+			double dist = dist_vector(target_traj[i], final_pose.pose.position);
+			dist_list.push_back(dist);
 		}
+		vector<double> tmp_dist_list = dist_list;
+		vector<double>::iterator iter1 = min_element(tmp_dist_list.begin(), tmp_dist_list.end());
+		size_t index1 = distance(tmp_dist_list.begin(), iter1);
+		// cout<<"index1 : "<<index1<<endl;
+		auto min_iter1 = std::find(dist_list.begin(), dist_list.end(), tmp_dist_list[index1]);
+		size_t min_index1 = distance(dist_list.begin(), min_iter1);
+		// cout<<"min_index1 : "<<min_index1<<endl;
+		// tmp_dist_list.erase(tmp_dist_list.begin() + index1);
+		sort(tmp_dist_list.begin(), tmp_dist_list.end(), std::greater<double>());
+		tmp_dist_list.pop_back();
+		vector<double>::iterator iter2 = min_element(tmp_dist_list.begin(), tmp_dist_list.end());
+		size_t index2 = distance(tmp_dist_list.begin(), iter2);
+		// cout<<"index2 : "<<index2<<endl;
+		auto min_iter2 = std::find(dist_list.begin(), dist_list.end(), tmp_dist_list[index2]);
+		size_t min_index2 = distance(dist_list.begin(), min_iter2);
+		// cout<<"min_index2 : "<<min_index2<<endl;
+		geometry_msgs::Point target_traj_point1 = target_traj[min_index1];
+		geometry_msgs::Point target_traj_point2 = target_traj[min_index2];
+		// cout<<"target_traj_point1 : "<<target_traj_point1<<endl;
+		// cout<<"target_traj_point2 : "<<target_traj_point2<<endl;
+		min_dist = dist_line_and_point(target_traj_point1, target_traj_point2, final_pose.pose.position);
+		// cout<<"min_dist : "<<min_dist<<endl;
+
 	}
 	// cout<<"min_dist : "<<min_dist<<endl;
-	if(min_dist == 0.0){
-		min_dist = 0.0001;
+	if(min_dist < 0.001){
+		min_dist = 0.01;
 	}
 	double inverse_target_path_dist = 1.0 / min_dist;
 	
@@ -322,20 +349,20 @@ vector<double> evaluation_trajectories(vector<double> Vr, vector<double> sample_
 	int i = 0;
 	for(double linear=Vr[0]; linear<=Vr[1]; linear+=sample_resolutions[0]){
 		for(double angular=Vr[2]; angular<Vr[3]; angular+=sample_resolutions[1]){
-			cout<<"============== i : "<<i<<" ============ "<<endl;
+			// cout<<"============== i : "<<i<<" ============ "<<endl;
 			// cout<<"linear : "<<linear<<endl;
 			// cout<<"angular : "<<angular<<endl;
 			vector<geometry_msgs::PoseStamped> trajectory;
 			trajectory = get_future_trajectory(linear, angular, SIM_TIME, dt);
-			cout<<"trajectory_size : "<<trajectory.size()<<endl;
+			// cout<<"trajectory_size : "<<trajectory.size()<<endl;
 			double eval_obs_dist = check_nearest_obs_dist(trajectory, obs_position);
-			cout<<"eval_obs_dist : "<<eval_obs_dist<<endl;
+			// cout<<"eval_obs_dist : "<<eval_obs_dist<<endl;
 			double eval_vel = fabs(linear);
-			cout<<"eval_vel : "<<eval_vel<<endl;
+			// cout<<"eval_vel : "<<eval_vel<<endl;
 			double eval_heading = check_goal_heading(trajectory, next_target);
-			cout<<"eval_heading : "<<eval_heading<<endl;
+			// cout<<"eval_heading : "<<eval_heading<<endl;
 			double eval_inv_target = check_inverse_target_path_dist(trajectory, target_path);
-			cout<<"eval_inv_target : "<<eval_inv_target<<endl;
+			// cout<<"eval_inv_target : "<<eval_inv_target<<endl;
 
 			vector<double> path_and_eval{linear, angular, 
 										 eval_obs_dist, eval_vel, eval_heading, eval_inv_target};
@@ -355,19 +382,19 @@ vector<double> evaluation_trajectories(vector<double> Vr, vector<double> sample_
 	size_t max_eval_index = 0;
 	size_t path_and_eval_list_size = path_and_eval_list.size();
 	for(size_t i=1; i<path_and_eval_list_size; i++){
-		cout<<"============== i : "<<i<<" ============ "<<endl;
+		// cout<<"============== i : "<<i<<" ============ "<<endl;
 		double tmp_total_eval = COST_OBS*path_and_eval_list[i][2] 
 							  + COST_VEL*path_and_eval_list[i][3] 
 							  + COST_HEAD*path_and_eval_list[i][4]
 							  + COST_INV_TARGET*path_and_eval_list[i][5];
-		cout<<"tmp_total_eval : "<<tmp_total_eval<<endl;
+		// cout<<"tmp_total_eval : "<<tmp_total_eval<<endl;
 		if(tmp_total_eval > max_total_eval){
 			max_total_eval = tmp_total_eval;
 			max_eval_index = i;
 		}
 	}
-	cout<<"max_total_eval : "<<max_total_eval<<endl;
-	cout<<"max_eval_index : "<<max_eval_index<<endl;
+	// cout<<"max_total_eval : "<<max_total_eval<<endl;
+	// cout<<"max_eval_index : "<<max_eval_index<<endl;
 
 	selected_path = get_selected_path(path_candidate, max_eval_index);
 	double selected_linear = path_and_eval_list[max_eval_index][0];
