@@ -39,6 +39,7 @@ double SIM_TIME;
 double COST_OBS;
 double COST_VEL;
 double COST_HEAD;
+double COST_INV_TARGET;
 
 visualization_msgs::MarkerArray path_candidate;
 visualization_msgs::Marker selected_path;
@@ -48,6 +49,7 @@ nav_msgs::Odometry current_state;
 geometry_msgs::Point next_target;
 
 vector<geometry_msgs::Point> obs_position;
+vector<geometry_msgs::Point > target_path;
 
 
 ros::Publisher vis_target_pub;
@@ -258,6 +260,60 @@ double check_goal_heading(vector<geometry_msgs::PoseStamped> traj, geometry_msgs
 	return eval_heading;
 }
 
+double dist_vector(geometry_msgs::Point a, geometry_msgs::Point b)
+{
+	return sqrt((a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y));
+}
+
+double cross_vector(geometry_msgs::Point a, geometry_msgs::Point b)
+{
+	return a.x*b.y - a.y*b.x;
+}
+
+double dist_line_and_point(geometry_msgs::Point a, geometry_msgs::Point b, geometry_msgs::Point p)
+{
+	geometry_msgs::Point u, v;
+	u.x = b.x - a.x;
+	u.y = b.y - a.y;
+	u.z = 0.0;
+
+	v.x = p.x - a.x;
+	v.y = p.y - a.y;
+	v.z = 0.0;
+
+	double D = fabs(cross_vector(u, v));
+	double L = dist_vector(a, b);
+	double H = D / L;
+
+	return H;
+}
+
+
+double check_inverse_target_path_dist(vector<geometry_msgs::PoseStamped> traj, 
+						 vector<geometry_msgs::Point> target_traj)
+{
+	geometry_msgs::PoseStamped final_pose;
+	vector<geometry_msgs::PoseStamped>::iterator itr = traj.end()-1;
+	final_pose = *itr;
+	// cout<<"final_pose : "<<final_pose<<endl;
+	double min_dist = dist_line_and_point(target_traj[0], target_traj[1], final_pose.pose.position);
+	size_t target_traj_size = target_traj.size();
+	for(size_t i=1; i<target_traj_size-1; i++){
+		double dist = dist_line_and_point(target_traj[i], target_traj[i+1], final_pose.pose.position);
+		// cout<<"dist : "<<dist<<endl;
+		if(dist < min_dist){
+			min_dist = dist;
+		}
+	}
+	// cout<<"min_dist : "<<min_dist<<endl;
+	if(min_dist == 0.0){
+		min_dist = 0.0001;
+	}
+	double inverse_target_path_dist = 1.0 / min_dist;
+	
+	return inverse_target_path_dist;
+}
+
 
 vector<double> evaluation_trajectories(vector<double> Vr, vector<double> sample_resolutions, double dt)
 {
@@ -266,20 +322,23 @@ vector<double> evaluation_trajectories(vector<double> Vr, vector<double> sample_
 	int i = 0;
 	for(double linear=Vr[0]; linear<=Vr[1]; linear+=sample_resolutions[0]){
 		for(double angular=Vr[2]; angular<Vr[3]; angular+=sample_resolutions[1]){
-			// cout<<"============== i : "<<i<<" ============ "<<endl;
+			cout<<"============== i : "<<i<<" ============ "<<endl;
 			// cout<<"linear : "<<linear<<endl;
 			// cout<<"angular : "<<angular<<endl;
 			vector<geometry_msgs::PoseStamped> trajectory;
 			trajectory = get_future_trajectory(linear, angular, SIM_TIME, dt);
-			// cout<<"trajectory_size : "<<trajectory.size()<<endl;
+			cout<<"trajectory_size : "<<trajectory.size()<<endl;
 			double eval_obs_dist = check_nearest_obs_dist(trajectory, obs_position);
-			// cout<<"eval_obs_dist : "<<eval_obs_dist<<endl;
+			cout<<"eval_obs_dist : "<<eval_obs_dist<<endl;
 			double eval_vel = fabs(linear);
-			// cout<<"eval_vel : "<<eval_vel<<endl;
+			cout<<"eval_vel : "<<eval_vel<<endl;
 			double eval_heading = check_goal_heading(trajectory, next_target);
-			// cout<<"eval_heading : "<<eval_heading<<endl;
+			cout<<"eval_heading : "<<eval_heading<<endl;
+			double eval_inv_target = check_inverse_target_path_dist(trajectory, target_path);
+			cout<<"eval_inv_target : "<<eval_inv_target<<endl;
 
-			vector<double> path_and_eval{linear, angular, eval_obs_dist, eval_vel, eval_heading};
+			vector<double> path_and_eval{linear, angular, 
+										 eval_obs_dist, eval_vel, eval_heading, eval_inv_target};
 			path_and_eval_list.push_back(path_and_eval);
 			
 			visualization_msgs::Marker vis_traj;
@@ -291,22 +350,24 @@ vector<double> evaluation_trajectories(vector<double> Vr, vector<double> sample_
 
 	double max_total_eval = COST_OBS*path_and_eval_list[0][2] 
 						  + COST_VEL*path_and_eval_list[0][3] 
-						  + COST_HEAD*path_and_eval_list[0][4]; 
+						  + COST_HEAD*path_and_eval_list[0][4]
+						  + COST_INV_TARGET*path_and_eval_list[0][5];
 	size_t max_eval_index = 0;
 	size_t path_and_eval_list_size = path_and_eval_list.size();
 	for(size_t i=1; i<path_and_eval_list_size; i++){
-		// cout<<"============== i : "<<i<<" ============ "<<endl;
+		cout<<"============== i : "<<i<<" ============ "<<endl;
 		double tmp_total_eval = COST_OBS*path_and_eval_list[i][2] 
 							  + COST_VEL*path_and_eval_list[i][3] 
-							  + COST_HEAD*path_and_eval_list[i][4]; 
-		// cout<<"tmp_total_eval : "<<tmp_total_eval<<endl;
+							  + COST_HEAD*path_and_eval_list[i][4]
+							  + COST_INV_TARGET*path_and_eval_list[i][5];
+		cout<<"tmp_total_eval : "<<tmp_total_eval<<endl;
 		if(tmp_total_eval > max_total_eval){
 			max_total_eval = tmp_total_eval;
 			max_eval_index = i;
 		}
 	}
-	// cout<<"max_total_eval : "<<max_total_eval<<endl;
-	// cout<<"max_eval_index : "<<max_eval_index<<endl;
+	cout<<"max_total_eval : "<<max_total_eval<<endl;
+	cout<<"max_eval_index : "<<max_eval_index<<endl;
 
 	selected_path = get_selected_path(path_candidate, max_eval_index);
 	double selected_linear = path_and_eval_list[max_eval_index][0];
@@ -378,49 +439,97 @@ void lclCallback(nav_msgs::Odometry msg)
 	sub_lcl = true;
 }
 
-void set_target_marker(geometry_msgs::Point target, visualization_msgs::Marker &marker)
+void set_target_marker(vector<geometry_msgs::Point> target, visualization_msgs::Marker &marker)
 {
 	marker.header.frame_id = "/velodyne";
 	marker.header.stamp = ros::Time::now();
 	marker.id = 0;
 	marker.ns = "vin_target";
 
-	marker.type = visualization_msgs::Marker::SPHERE;
+	marker.type = visualization_msgs::Marker::LINE_STRIP;
 	marker.action = visualization_msgs::Marker::ADD;
 
-	marker.scale.x = 0.15;
-	marker.scale.y = 0.15;
-	marker.scale.z = 0.15;
+	marker.scale.x = 0.05;
 
 	marker.color.r = 0.7;
 	marker.color.g = 0.0;
 	marker.color.b = 0.7;
 	marker.color.a = 1.0;
 
-	// marker.lifetime = ros::Duration(0.1);
-	marker.lifetime = ros::Duration(0.025);
+	marker.lifetime = ros::Duration(0.1);
+	// marker.lifetime = ros::Duration(0.05);
 
-	marker.pose.position = target;
+	size_t target_size = target.size();
+	for(size_t i=0; i<target_size; i++){
+		marker.points.push_back(target[i]);
+	}
+}
+
+void view_gridmap(vector< vector<int> > array)
+{	
+	size_t array_size1 = array.size(); 
+	// cout<<"array_size1 : "<<array_size1<<endl;
+	size_t array_size2 = array[0].size(); 
+	// cout<<"array_size2 : "<<array_size2<<endl;
+	for(size_t i=0; i<array_size1; i++){
+		for(size_t j=0; j<array_size2; j++){
+			printf("%3d, ", array[i][j]);
+		}
+		cout<<endl;
+	}
+}
+
+vector< vector<int> > reshape_2dim(vector<int> input_array, int rows, int cols)
+{
+	vector< vector<int> > output_array;
+	for(int i=0; i<rows; i++){
+		vector<int> a(cols, 0);
+		for(int j=0; j<cols; j++){
+			a[j] = input_array[j+i*cols];
+		}
+		output_array.push_back(a);
+	}
+	// cout<<"grid_map : "<<endl;
+	// view_gridmap(output_array);
+	return output_array;
 }
 
 void vinNextTargetCallback(std_msgs::Int32MultiArray msg)
 {
+	target_path.clear();
 	double res = local_map.info.resolution * float(local_map.info.width) / float(msg.layout.dim[0].size);
 	// cout<<"local_map.info.resolution : "<<local_map.info.resolution<<endl;
 	// cout<<"local_map.info.width : "<<local_map.info.width<<endl;
 	// cout<<"res : "<<res<<endl;
-	double x = msg.data[1] * res + local_map.info.origin.position.x;
-	double y = msg.data[0] * res + local_map.info.origin.position.y;
+	int rows = msg.data.size();
+	// cout<<"rows : "<<rows<<endl;
+	vector< vector<int> > state_list;
+	state_list = reshape_2dim(msg.data, rows/2, 2);
+	for(size_t i=0; i<state_list.size(); i++){
+		// cout<<"state_list["<<i<<"] : "<<state_list[i][0]<<", "<<state_list[i][1]<<endl;
+		double x = state_list[i][1] * res + local_map.info.origin.position.x;
+		double y = state_list[i][0] * res + local_map.info.origin.position.y;
+		// cout<<"x : "<<x<<endl;
+		// cout<<"y : "<<y<<endl;
+		geometry_msgs::Point target_point;
+		target_point.x = x;
+		target_point.y = y;
+		target_point.z = 0.0;
+		target_path.push_back(target_point);
+	}
+	for(size_t i=0; i<target_path.size(); i++){
+		cout<<"target_path["<<i<<"] : "<<target_path[i]<<endl;
+	}
 	
-	next_target.x = x;
-	next_target.y = y;
+	next_target.x = target_path[target_path.size()-1].x;
+	next_target.y = target_path[target_path.size()-1].y;
 	next_target.z = 0.0;
+	// cout<<"next_target : "<<next_target<<endl;
 
 	visualization_msgs::Marker vis_target;
-	set_target_marker(next_target, vis_target);
+	set_target_marker(target_path, vis_target);
 	
 	vis_target_pub.publish(vis_target);
-	// cout<<"next_target : "<<next_target<<endl;
 
 	sub_next_target = true;
 }
@@ -437,6 +546,7 @@ void print_param(){
 	printf("cost_nearest_obstacle : %.3f\n", COST_OBS);	
 	printf("cost_velocity : %.3f\n", COST_VEL);	
 	printf("cost_goal_heading : %.3f\n", COST_HEAD);	
+	printf("cost_inverse_target_path : %.3f\n", COST_INV_TARGET);	
 }
 
 int main(int argc, char** argv)
@@ -455,12 +565,13 @@ int main(int argc, char** argv)
 	n.getParam("/dwa/cost_nearest_obstacle", COST_OBS);
 	n.getParam("/dwa/cost_velocity", COST_VEL);
 	n.getParam("/dwa/cost_goal_heading", COST_HEAD);
+	n.getParam("/dwa/cost_inverse_target_path", COST_INV_TARGET);
 	print_param();
 
 
 	ros::Subscriber local_map_sub = n.subscribe("/local_map_real", 1, localMapCallback);
 	ros::Subscriber lcl_sub = n.subscribe("/lcl5", 1, lclCallback);
-	ros::Subscriber vin_next_targe_sub = n.subscribe("/vin/next_target", 1, vinNextTargetCallback);
+	ros::Subscriber vin_next_targe_sub = n.subscribe("/vin/target_path", 1, vinNextTargetCallback);
 
 	ros::Publisher cmd_vel_pub = n.advertise<knm_tiny_msgs::Velocity>("/control_command", 1);
 	ros::Publisher vis_path_selected_pub = n.advertise<visualization_msgs::Marker>("/vis_path/selected", 1);
