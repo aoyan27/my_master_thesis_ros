@@ -483,7 +483,8 @@ void set_target_marker(vector<geometry_msgs::Point> target, visualization_msgs::
 	marker.color.b = 0.7;
 	marker.color.a = 1.0;
 
-	marker.lifetime = ros::Duration(0.1);
+	marker.lifetime = ros::Duration();
+	// marker.lifetime = ros::Duration(0.1);
 	// marker.lifetime = ros::Duration(0.05);
 
 	size_t target_size = target.size();
