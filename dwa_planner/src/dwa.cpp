@@ -596,7 +596,8 @@ int main(int argc, char** argv)
 	print_param();
 
 
-	ros::Subscriber local_map_sub = n.subscribe("/local_map_real", 1, localMapCallback);
+	// ros::Subscriber local_map_sub = n.subscribe("/local_map_real", 1, localMapCallback);
+	ros::Subscriber local_map_sub = n.subscribe("/local_map_real/expand", 1, localMapCallback);
 	ros::Subscriber lcl_sub = n.subscribe("/lcl5", 1, lclCallback);
 	ros::Subscriber vin_next_targe_sub = n.subscribe("/vin/target_path", 1, vinNextTargetCallback);
 
