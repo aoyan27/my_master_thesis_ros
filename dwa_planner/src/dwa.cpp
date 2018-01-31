@@ -132,8 +132,9 @@ void set_vis_traj(vector<geometry_msgs::PoseStamped> traj,
 	marker.color.b = 0.0;
 	marker.color.a = 1.0;
 
-	// marker.lifetime = ros::Duration(0.1);
-	marker.lifetime = ros::Duration(0.025);
+	// marker.lifetime = ros::Duration();
+	marker.lifetime = ros::Duration(0.1);
+	// marker.lifetime = ros::Duration(0.025);
 	
 	for(size_t i=0; i<traj_size; i++){
 		marker.points.push_back(traj[i].pose.position);
@@ -349,20 +350,20 @@ vector<double> evaluation_trajectories(vector<double> Vr, vector<double> sample_
 	int i = 0;
 	for(double linear=Vr[0]; linear<=Vr[1]; linear+=sample_resolutions[0]){
 		for(double angular=Vr[2]; angular<Vr[3]; angular+=sample_resolutions[1]){
-			// cout<<"============== i : "<<i<<" ============ "<<endl;
+			cout<<"============== i : "<<i<<" ============ "<<endl;
 			// cout<<"linear : "<<linear<<endl;
 			// cout<<"angular : "<<angular<<endl;
 			vector<geometry_msgs::PoseStamped> trajectory;
 			trajectory = get_future_trajectory(linear, angular, SIM_TIME, dt);
 			// cout<<"trajectory_size : "<<trajectory.size()<<endl;
 			double eval_obs_dist = check_nearest_obs_dist(trajectory, obs_position);
-			// cout<<"eval_obs_dist : "<<eval_obs_dist<<endl;
+			printf("eval_obs_dist : %.4f\n", eval_obs_dist);
 			double eval_vel = fabs(linear);
-			// cout<<"eval_vel : "<<eval_vel<<endl;
+			printf("eval_vel : %.4f\n", eval_vel);
 			double eval_heading = check_goal_heading(trajectory, next_target);
-			// cout<<"eval_heading : "<<eval_heading<<endl;
+			printf("eval_heading : %.4f\n", eval_heading);
 			double eval_inv_target = check_inverse_target_path_dist(trajectory, target_path);
-			// cout<<"eval_inv_target : "<<eval_inv_target<<endl;
+			printf("eval_inv_target : %.4f\n", eval_inv_target);
 
 			vector<double> path_and_eval{linear, angular, 
 										 eval_obs_dist, eval_vel, eval_heading, eval_inv_target};
@@ -393,8 +394,8 @@ vector<double> evaluation_trajectories(vector<double> Vr, vector<double> sample_
 			max_eval_index = i;
 		}
 	}
-	// cout<<"max_total_eval : "<<max_total_eval<<endl;
-	// cout<<"max_eval_index : "<<max_eval_index<<endl;
+	printf("max_total_eval : %.4f\n", max_total_eval);
+	printf("max_eval_index : %d\n", (int)max_eval_index);
 
 	selected_path = get_selected_path(path_candidate, max_eval_index);
 	double selected_linear = path_and_eval_list[max_eval_index][0];

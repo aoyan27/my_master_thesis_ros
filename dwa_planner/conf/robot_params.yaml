@@ -6,8 +6,8 @@ dwa:
     acceleraton_limit_rotation: 9.00
     velocity_samples: 10
     rotation_velocity_samples: 20
-    simulation_time: 3.0
-    cost_nearest_obstacle: 50.0
+    simulation_time: 4.0
+    cost_nearest_obstacle: 15.0
     cost_velocity: 1.0
     cost_goal_heading: 3.0
-    cost_inverse_target_path: 0.2
+    cost_inverse_target_path: 0.1
