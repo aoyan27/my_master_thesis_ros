@@ -91,15 +91,15 @@ class InputDataGenerator:
     
     def grid2image(self, grid_data):
         image = copy.deepcopy(grid_data)
-        #  index = np.where(image == 100)
-        #  image[index] = 1
+        index = np.where(image == 100)
+        image[index] = 1
 
-        resize_image = self.my_resize_image(image)
+        #  resize_image = self.my_resize_image(image)
 
         #  print image
-       #  image = image.astype(np.uint8)
+        image = image.astype(np.uint8)
 
-        #  resize_image = cv.resize(image.astype(np.uint8), self.input_image_size)
+        resize_image = cv.resize(image.astype(np.uint8), self.input_image_size)
         return resize_image
 
     def view_image(self, array, title):
@@ -392,7 +392,7 @@ def main(model_path, gpu):
             
             agent.get_path(input_data, state_data, idg.discreate_local_goal)
             print "agent.traj_state_list : ", agent.traj_state_list
-            #  agent.view_path(input_data ,agent.traj_state_list)
+            agent.view_path(input_data ,agent.traj_state_list)
 
             ros_next_state.data = np.asarray(agent.traj_state_list).reshape(-1)
             next_target_pub.publish(ros_next_state)
