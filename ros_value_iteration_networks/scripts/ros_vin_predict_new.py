@@ -36,10 +36,17 @@ from visualization_msgs.msg import Marker
 class InputDataGenerator:
     def __init__(self, input_image_size=(20, 20)):
         self.input_image_size = input_image_size
-        self.gridmap_sub = \
-                rospy.Subscriber("/local_map_real/expand", OccupancyGrid, self.gridMapCallback)
+        #  self.gridmap_sub = \
+                #  rospy.Subscriber("/local_map_real/expand", OccupancyGrid, self.gridMapCallback)
         #  self.gridmap_sub = \
         #          rospy.Subscriber("/local_map_real", OccupancyGrid, self.gridMapCallback)
+
+        #  self.gridmap_sub = \
+                #  rospy.Subscriber("/local_map_static", OccupancyGrid, self.gridMapCallback)
+
+        self.gridmap_sub = \
+                rospy.Subscriber("/local_map", OccupancyGrid, self.gridMapCallback)
+
         self.lcl_sub = rospy.Subscriber("/lcl5", Odometry, self.lclCallback)
         self.local_goal_sub = rospy.Subscriber("/local_goal", PoseStamped, self.localGoalCallback)
 
@@ -392,7 +399,7 @@ def main(model_path, gpu):
             
             agent.get_path(input_data, state_data, idg.discreate_local_goal)
             print "agent.traj_state_list : ", agent.traj_state_list
-            agent.view_path(input_data ,agent.traj_state_list)
+            #  agent.view_path(input_data ,agent.traj_state_list)
 
             ros_next_state.data = np.asarray(agent.traj_state_list).reshape(-1)
             next_target_pub.publish(ros_next_state)
