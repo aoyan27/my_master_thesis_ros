@@ -11,14 +11,14 @@ void pVelPointCallback(const sensor_msgs::PointCloud2::Ptr& msg)
 {
     msg->header.frame_id="velodyne2";
     msg->header.stamp   =ros::Time::now(); 
-    pub1.publish(*msg);
+    pub2.publish(*msg);
 }
 
 void velPointCallback(const sensor_msgs::PointCloud2::Ptr& msg)
 {
     msg->header.frame_id="velodyne2";
     msg->header.stamp   =ros::Time::now(); 
-    pub2.publish(*msg);
+    pub1.publish(*msg);
 }
 
 void velPointConsCallback(const sensor_msgs::PointCloud2::Ptr& msg)
