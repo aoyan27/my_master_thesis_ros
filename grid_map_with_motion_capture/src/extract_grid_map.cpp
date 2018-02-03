@@ -21,10 +21,11 @@ using namespace std;
 #define Height 10
 #define Resolution 0.25
 
-#define offset_x 0
-#define offset_y 0
-
 #define Expand_radius 0.15
+
+string PARENT_FRAME;
+string CHILD_FRAME;
+vector<double> DoF;
 
 
 nav_msgs::OccupancyGrid global_map;
@@ -149,6 +150,11 @@ void ExpandMap::expandObstacle(const nav_msgs::OccupancyGrid& map_in)
 	}
 }
 
+void print_param(){
+	printf("Parent frame : %s\n", PARENT_FRAME.c_str());
+	printf("Child frame : %s\n", CHILD_FRAME.c_str());
+	printf("6Dof : (%f, %f, %f, %f, %f, %f)\n", DoF[0], DoF[1], DoF[2], DoF[3], DoF[4], DoF[5]);
+}
 
 void view_gridmap(vector< vector<int> > array)
 {	
@@ -246,7 +252,8 @@ vector<int> continuous2discreate(double x, double y, nav_msgs::OccupancyGrid map
 
 void set_grid_map(nav_msgs::OccupancyGrid &map)
 {
-	map.header = global_map.header;
+	map.header.frame_id = CHILD_FRAME;
+	map.header.stamp = global_map.header.stamp;
 	map.info.resolution = Resolution;
 	map.info.width = Width / Resolution;
 	map.info.height = Height / Resolution;
@@ -266,17 +273,16 @@ void set_grid_data(nav_msgs::OccupancyGrid &map, vector<int> map_1d)
 }
 
 
-vector<int> get_discreate_extract_range(vector<int> center,
-										int width, int height, 
+vector<int> get_discreate_extract_range(vector<int> center,int width, int height, 
 										vector<int> offset)
 {
 	vector<int> half_extract_range = continuous2discreate(width/2, height/2, global_map, false);
 	cout<<"half_extract_range : "<<endl;
 	view_array(half_extract_range);
-	int min_x = center[0] - half_extract_range[0];
-	int min_y = center[1] - half_extract_range[1];
-	int max_x = center[0] + half_extract_range[0];
-	int max_y = center[1] + half_extract_range[1];
+	int min_x = (center[0] + offset[0]) - half_extract_range[0];
+	int min_y = (center[1] + offset[1]) - half_extract_range[1];
+	int max_x = (center[0] + offset[0]) + half_extract_range[0];
+	int max_y = (center[1] + offset[1]) + half_extract_range[1];
 	vector<int> discreate_extract_range{min_x, min_y, max_x, max_y};
 	cout<<"discreate_extract_range : "<<endl;
 	view_array(discreate_extract_range);
@@ -303,6 +309,8 @@ void extract_base_input_grid_map(vector< vector<int> > &base_grid_map)
 	vector<int> global_center = continuous2discreate(-1.0*global_map.info.origin.position.x, 
 													 -1.0*global_map.info.origin.position.y, 
 													 global_map, false);
+	double offset_x = DoF[0];
+	double offset_y = DoF[1];
 	vector<int> discreate_offset = continuous2discreate(offset_x, offset_y, global_map, false);
 
 	view_array(global_center);
@@ -368,6 +376,12 @@ int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "extract_grid_map");
 	ros::NodeHandle n;
+
+	n.getParam("/map2input_map/parent_frame", PARENT_FRAME);
+	n.getParam("/map2input_map/child_frame", CHILD_FRAME);
+	n.getParam("/map2input_map/6DoF", DoF);
+
+	print_param();
 
 	ros::Subscriber global_map_sub = n.subscribe("/map", 1, globalMapCallback);
 	ros::Subscriber other_agents_velocity_sub 

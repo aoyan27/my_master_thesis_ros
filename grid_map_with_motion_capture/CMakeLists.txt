@@ -162,7 +162,8 @@ add_definitions(${PCL_DEFINITIONS})
 
 ## Declare a C++ executable
 add_executable(set_tf_map2world src/set_tf_map2world.cpp)
-add_executable(convert_motion_capture_data_world2map src/convert_motion_capture_data_world2map.cpp)
+add_executable(set_tf_map2input_map src/set_tf_map2input_map.cpp)
+add_executable(convert_motion_capture_data src/convert_motion_capture_data.cpp)
 add_executable(extract_grid_map src/extract_grid_map.cpp)
 
 ## Add cmake target dependencies of the executable
@@ -173,7 +174,10 @@ add_executable(extract_grid_map src/extract_grid_map.cpp)
 target_link_libraries(set_tf_map2world
   ${catkin_LIBRARIES}
 )
-target_link_libraries(convert_motion_capture_data_world2map
+target_link_libraries(set_tf_map2input_map
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(convert_motion_capture_data
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
 )

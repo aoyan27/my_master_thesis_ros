@@ -75,13 +75,13 @@ CvtMocapData::CvtMocapData(ros::NodeHandle &n)
 geometry_msgs::PoseStamped CvtMocapData::get_map_pose(geometry_msgs::PoseStamped mocap_pose)
 {
 	geometry_msgs::PoseStamped map_pose;
-	map_pose.header.frame_id = "/map";
+	map_pose.header.frame_id = "/input_map";
 	map_pose.header.stamp = mocap_pose.header.stamp;
 	try{
-		tflistener_.waitForTransform("/map", "/world", 
+		tflistener_.waitForTransform("/input_map", "/world", 
 									 map_pose.header.stamp, 
 									 ros::Duration(5.0));
-		tflistener_.transformPose("/map", map_pose.header.stamp, mocap_pose, 
+		tflistener_.transformPose("/input_map", map_pose.header.stamp, mocap_pose, 
 								  "/world", map_pose);
 	}
 	catch(tf::TransformException &ex){
@@ -148,7 +148,7 @@ void CvtMocapData::set_pointcloud(visualization_msgs::Marker marker)
 	if(marker.id == 0){
 		my_agent_tracking_pc->points.clear();
 		my_agent_tracking_pc->points.push_back(tmp_point);
-		cout<<my_agent_tracking_pc->points.size()<<endl;
+		// cout<<my_agent_tracking_pc->points.size()<<endl;
 	}
 	else{
 		other_agents_tracking_pc->points.clear();
@@ -194,7 +194,7 @@ void CvtMocapData::mocapVelocityCallback(visualization_msgs::MarkerArray msg)
 	other_agents_velocity_pub_.publish(other_agents_);
 
 	std_msgs::Header header;
-	header.frame_id = "/map";
+	header.frame_id = "/input_map";
 	header.stamp = ros::Time::now();
 
 	sensor_msgs::PointCloud2 my_agent_tracking_pc2;
