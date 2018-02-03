@@ -18,6 +18,8 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(PCL 1.8.0 REQUIRED)
+
 find_package(OpenMP REQUIRED)
 if(OPENMP_FOUND)
 	message("OPENMP_FOUND")
@@ -129,7 +131,7 @@ SET(CMAKE_CXX_FLAGS "-std=c++11 -O2 -g -Wall ${CMAKE_CXX_FLAGS}")
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES global_map_with_motion_capture
-#  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy sensor_msgs std_msgs tf vicon_bridge visualization_msgs
+ CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy sensor_msgs std_msgs tf vicon_bridge visualization_msgs
 #  DEPENDS system_lib
 )
 
@@ -142,7 +144,11 @@ catkin_package(
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 )
+
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 ## Declare a C++ library
 # add_library(global_map_with_motion_capture
@@ -156,6 +162,7 @@ include_directories(
 
 ## Declare a C++ executable
 add_executable(set_tf_map2world src/set_tf_map2world.cpp)
+add_executable(convert_motion_capture_data_world2map src/convert_motion_capture_data_world2map.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -164,6 +171,10 @@ add_executable(set_tf_map2world src/set_tf_map2world.cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(set_tf_map2world
   ${catkin_LIBRARIES}
+)
+target_link_libraries(convert_motion_capture_data_world2map
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
 )
 
 #############
