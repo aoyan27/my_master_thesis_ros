@@ -1,4 +1,4 @@
 map2world:
     parent_frame: "/map"
     child_frame: "/world"
-    6DoF: [7.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    6DoF: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
