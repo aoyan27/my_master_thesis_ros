@@ -45,7 +45,7 @@ int main(int argc, char** argv)
 	std_msgs::Header header;
 	header.frame_id = PARENT_FRAME;
 
-	printf("Send tf!!");
+	printf("Send tf!!\n");
 	printf("Parent frame : %s\n", PARENT_FRAME.c_str());
 	printf("Child frame : %s\n", CHILD_FRAME.c_str());
 	printf("6Dof : (%f, %f, %f, %f, %f, %f)\n", DoF[0], DoF[1], DoF[2], DoF[3], DoF[4], DoF[5]);

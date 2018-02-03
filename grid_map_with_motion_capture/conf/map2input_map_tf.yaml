@@ -1,0 +1,4 @@
+map2input_map:
+    parent_frame: "/map"
+    child_frame: "/input_map"
+    6DoF: [5.0, 1.0, 0.0, 0.0, 0.0, 0.0]
