@@ -1,5 +1,7 @@
 #include <ros/ros.h>
-#include <tf/transform_broadcaster.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <tf/tf.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 
 #include <stdio.h>
 
@@ -30,26 +32,33 @@ int main(int argc, char** argv)
 
 	cout<<"Here we go!!"<<endl;
 
-	tf::TransformBroadcaster br;
-	tf::Transform transform;
+	tf2_ros::StaticTransformBroadcaster br;
 
-	transform.setOrigin(tf::Vector3(DoF[0], DoF[1], DoF[2]));
+	geometry_msgs::TransformStamped br_transform;
 
-	tf::Quaternion q;
-	q.setRPY(DoF[3], DoF[4], DoF[5]);
-	transform.setRotation(q);
+	geometry_msgs::Transform transform;
+	transform.translation.x = DoF[0];
+	transform.translation.y = DoF[1];
+	transform.translation.z = DoF[2];
+	transform.rotation = tf::createQuaternionMsgFromRollPitchYaw(DoF[3], DoF[4], DoF[5]);
 
-	ros::Rate loop_rate(10);
-	while(ros::ok()){
-		printf("Send tf!!");
-		printf("Parent frame : %s\n", PARENT_FRAME.c_str());
-		printf("Child frame : %s\n", CHILD_FRAME.c_str());
-		printf("6Dof : (%f, %f, %f, %f, %f, %f)\n", DoF[0], DoF[1], DoF[2], DoF[3], DoF[4], DoF[5]);
+	std_msgs::Header header;
+	header.frame_id = PARENT_FRAME;
 
-		br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "/map", "/world"));
+	printf("Send tf!!");
+	printf("Parent frame : %s\n", PARENT_FRAME.c_str());
+	printf("Child frame : %s\n", CHILD_FRAME.c_str());
+	printf("6Dof : (%f, %f, %f, %f, %f, %f)\n", DoF[0], DoF[1], DoF[2], DoF[3], DoF[4], DoF[5]);
 
-		loop_rate.sleep();
-	}
+	header.stamp = ros::Time::now();
+
+	br_transform.header = header;
+	br_transform.child_frame_id = CHILD_FRAME;
+	br_transform.transform = transform;
+
+	br.sendTransform(br_transform);
+
+	ros::spin();
 
 	return 0;
 }
