@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+	<rosparam command="load" file="$(find dwa_planner)/conf/robot_params_with_motion_capture.yaml" />
+	<node pkg="dwa_planner" name="dwa_planner_with_motion_capture" type="dwa_with_motion_capture" output="screen" />
+</launch>
