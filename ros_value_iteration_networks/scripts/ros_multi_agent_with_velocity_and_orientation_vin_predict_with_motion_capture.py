@@ -38,10 +38,10 @@ class InputDataGenerator:
         self.local_goal = local_goal
         self.input_image_size = input_image_size
 
-        self.gridmap_sub = \
-                rospy.Subscriber("/input_grid_map", OccupancyGrid, self.gridMapCallback)
         #  self.gridmap_sub = \
-                #  rospy.Subscriber("/input_grid_map/expand", OccupancyGrid, self.gridMapCallback)
+                #  rospy.Subscriber("/input_grid_map", OccupancyGrid, self.gridMapCallback)
+        self.gridmap_sub = \
+                rospy.Subscriber("/input_grid_map/expand", OccupancyGrid, self.gridMapCallback)
 
         self.human_sub = \
                 rospy.Subscriber("/other_agents_velocity", MarkerArray, self.extractHumanCallback)
@@ -472,7 +472,7 @@ def main(model_path, gpu):
                                    idg.other_position_data, idg.other_velocity_data, \
                                    idg.other_orientation_data, idg.discreate_local_goal)
             print "agent.traj_state_list : ", agent.traj_state_list
-            #  agent.view_path(idg.input_data ,agent.traj_state_list, found)
+            agent.view_path(idg.input_data ,agent.traj_state_list, found)
 
             ros_next_state.data = np.asarray(agent.traj_state_list).reshape(-1)
             next_target_pub.publish(ros_next_state)

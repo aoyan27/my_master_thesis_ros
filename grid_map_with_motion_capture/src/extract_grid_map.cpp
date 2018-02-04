@@ -321,6 +321,18 @@ void extract_base_input_grid_map(vector< vector<int> > &base_grid_map)
 	// view_gridmap(base_grid_map);
 }
 
+void set_grid_map_with_other_agent(vector< vector<int> > &grid_map, vector<int> agent_position)
+{
+	grid_map[agent_position[1]][agent_position[0]] = 100;
+	grid_map[agent_position[1]+1][agent_position[0]] = 100;
+	grid_map[agent_position[1]][agent_position[0]+1] = 100;
+	grid_map[agent_position[1]][agent_position[0]-1] = 100;
+	grid_map[agent_position[1]-1][agent_position[0]] = 100;
+	grid_map[agent_position[1]+1][agent_position[0]+1] = 100;
+	grid_map[agent_position[1]-1][agent_position[0]+1] = 100;
+	// grid_map[agent_position[1]+1][agent_position[0]-1] = 100;
+	// grid_map[agent_position[1]-1][agent_position[0]-1] = 100;
+}
 
 void globalMapCallback(nav_msgs::OccupancyGrid msg)
 {
@@ -360,6 +372,7 @@ void otherAgentsVelocityCallback(visualization_msgs::MarkerArray msg)
 				cout<<"agent_id : "<<i<<endl;
 				view_array(discreate_position);
 				input_map_2d[discreate_position[1]][discreate_position[0]] = 100;
+				set_grid_map_with_other_agent(input_map_2d, discreate_position);
 			}
 			// view_gridmap(input_map_2d);
 			vector<int> input_map_1d = reshape_1dim(input_map_2d);
