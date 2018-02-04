@@ -24,9 +24,9 @@ int main(int argc, char** argv)
 	ros::init(argc, argv, "set_tf_map2world");
 	ros::NodeHandle n;
 	
-	n.getParam("/map2world/parent_frame", PARENT_FRAME);
-	n.getParam("/map2world/child_frame", CHILD_FRAME);
-	n.getParam("/map2world/6DoF", DoF);
+	n.getParam("/TFmap2vicon/parent_frame", PARENT_FRAME);
+	n.getParam("/TFmap2vicon/child_frame", CHILD_FRAME);
+	n.getParam("/TFmap2vicon/6DoF", DoF);
 
 	print_param();
 
