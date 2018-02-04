@@ -71,6 +71,10 @@ vector<double> get_DynamicWindow(visualization_msgs::Marker state, visualization
 	}
 	double linear = state.scale.x;
 	// cout<<"linear_ : "<<linear<<endl;
+	ros::Duration d = state.header.stamp - before_state_.header.stamp;
+	cout<<"d : "<<d<<endl;
+	double d_sec = d.toSec();
+	cout<<"d_sec : "<<d_sec<<endl;
 	double current_orientation = tf::getYaw(state.pose.orientation);
 	double before_orientation = tf::getYaw(before_state_.pose.orientation);
 	// cout<<"current_orientation : "<<current_orientation<<endl;
@@ -93,9 +97,11 @@ vector<double> get_DynamicWindow(visualization_msgs::Marker state, visualization
 			angular = current_orientation - before_orientation;
 		}
 	}
-	// angular = angular / 0.02;
-	// cout<<"angular_ : "<<angular<<endl;
+	// angular = angular / dt;
+	cout<<"angular_ : "<<angular<<endl;
 	before_state_ = state;
+	// vector<double> Vd{linear-ACC_LIM_TRANS*dt, linear+ACC_LIM_TRANS*dt, 
+					  // angular-ACC_LIM_ROT*d_sec, angular+ACC_LIM_ROT*d_sec};
 	vector<double> Vd{linear-ACC_LIM_TRANS*dt, linear+ACC_LIM_TRANS*dt, 
 					  angular-ACC_LIM_ROT*dt, angular+ACC_LIM_ROT*dt};
 	cout<<"++++++++++++++++++++++"<<endl;

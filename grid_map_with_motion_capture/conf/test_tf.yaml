@@ -1,4 +1,4 @@
-map2world:
+TFmap2vicon:
     parent_frame: "/map"
     child_frame: "/world"
     6DoF: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
