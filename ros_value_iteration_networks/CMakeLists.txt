@@ -42,7 +42,7 @@ else()
 endif()
 
 
-SET(CMAKE_CXX_FLAGS "-std=c++11 -O2 -g -Wall ${CMAKE_CXX_FLAGS}")
+SET(CMAKE_CXX_FLAGS "-std=c++11 -O3 -g -Wall ${CMAKE_CXX_FLAGS}")
 
 ################################################
 ## Declare ROS messages, services and actions ##
