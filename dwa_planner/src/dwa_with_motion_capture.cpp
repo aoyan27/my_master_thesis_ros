@@ -47,6 +47,7 @@ visualization_msgs::Marker selected_path;
 nav_msgs::OccupancyGrid local_map;
 visualization_msgs::Marker current_state;
 visualization_msgs::Marker before_state;
+nav_msgs::Odometry tiny_odom;
 geometry_msgs::Point next_target;
 
 vector<geometry_msgs::Point> obs_position;
@@ -69,7 +70,8 @@ vector<double> get_DynamicWindow(visualization_msgs::Marker state, visualization
 	for(size_t i=0; i<Vs.size();i++){
 		cout<<"Vs["<<i<<"] : "<<Vs[i]<<endl;
 	}
-	double linear = state.scale.x;
+	// double linear = state.scale.x;
+	double linear = tiny_odom.twist.twist.linear.x;
 	// cout<<"linear_ : "<<linear<<endl;
 	ros::Duration d = state.header.stamp - before_state_.header.stamp;
 	cout<<"d : "<<d<<endl;
@@ -98,6 +100,7 @@ vector<double> get_DynamicWindow(visualization_msgs::Marker state, visualization
 		}
 	}
 	// angular = angular / dt;
+	angular = tiny_odom.twist.twist.angular.z;
 	cout<<"angular_ : "<<angular<<endl;
 	before_state_ = state;
 	// vector<double> Vd{linear-ACC_LIM_TRANS*dt, linear+ACC_LIM_TRANS*dt, 
@@ -386,20 +389,20 @@ vector<double> evaluation_trajectories(vector<double> Vr, vector<double> sample_
 	int i = 0;
 	for(double linear=Vr[0]; linear<=Vr[1]; linear+=sample_resolutions[0]){
 		for(double angular=Vr[2]; angular<Vr[3]; angular+=sample_resolutions[1]){
-			// cout<<"============== i : "<<i<<" ============ "<<endl;
-			// cout<<"linear : "<<linear<<endl;
-			// cout<<"angular : "<<angular<<endl;
+			cout<<"============== i : "<<i<<" ============ "<<endl;
+			cout<<"linear : "<<linear<<endl;
+			cout<<"angular : "<<angular<<endl;
 			vector<geometry_msgs::PoseStamped> trajectory;
 			trajectory = get_future_trajectory(linear, angular, SIM_TIME, dt);
-			// cout<<"trajectory_size : "<<trajectory.size()<<endl;
+			cout<<"trajectory_size : "<<trajectory.size()<<endl;
 			double eval_obs_dist = check_nearest_obs_dist(trajectory, obs_position);
-			// printf("eval_obs_dist : %.4f\n", eval_obs_dist);
+			printf("eval_obs_dist : %.4f\n", eval_obs_dist);
 			double eval_vel = fabs(linear);
-			// printf("eval_vel : %.4f\n", eval_vel);
+			printf("eval_vel : %.4f\n", eval_vel);
 			double eval_heading = check_goal_heading(trajectory, next_target);
-			// printf("eval_heading : %.4f\n", eval_heading);
+			printf("eval_heading : %.4f\n", eval_heading);
 			double eval_inv_target = check_inverse_target_path_dist(trajectory, target_path);
-			// printf("eval_inv_target : %.4f\n", eval_inv_target);
+			printf("eval_inv_target : %.4f\n", eval_inv_target);
 
 			vector<double> path_and_eval{linear, angular, 
 										 eval_obs_dist, eval_vel, eval_heading, eval_inv_target};
@@ -505,6 +508,11 @@ void lclCallback(visualization_msgs::Marker msg)
 	current_state = msg;
 	// cout<<"Subscribe lcl!!"<<endl;
 	sub_lcl = true;
+}
+
+void tinyCallback(nav_msgs::Odometry msg)
+{
+	tiny_odom = msg;
 }
 
 void set_target_marker(vector<geometry_msgs::Point> target, visualization_msgs::Marker &marker)
@@ -638,9 +646,10 @@ int main(int argc, char** argv)
 	print_param();
 
 
-	ros::Subscriber local_map_sub = n.subscribe("/input_grid_map", 1, localMapCallback);
-	// ros::Subscriber local_map_sub = n.subscribe("/input_grid_map/expand", 1, localMapCallback);
+	// ros::Subscriber local_map_sub = n.subscribe("/input_grid_map", 1, localMapCallback);
+	ros::Subscriber local_map_sub = n.subscribe("/input_grid_map/expand", 1, localMapCallback);
 	ros::Subscriber lcl_sub = n.subscribe("/my_agent_velocity", 1, lclCallback);
+	ros::Subscriber tiny_sub = n.subscribe("/tinypower/odom", 1, tinyCallback);
 	ros::Subscriber vin_next_targe_sub = n.subscribe("/vin/target_path", 1, vinNextTargetCallback);
 
 	ros::Publisher cmd_vel_pub = n.advertise<knm_tiny_msgs::Velocity>("/control_command", 1);
