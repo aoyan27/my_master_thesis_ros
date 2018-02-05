@@ -498,7 +498,7 @@ def main(model_path, gpu):
                            idg.other_position_data, idg.other_velocity_data, \
                            idg.other_orientation_data, idg.discreate_local_goal)
             print "agent.traj_state_list : ", agent.traj_state_list
-            agent.view_path(idg.input_data ,agent.traj_state_list)
+            #  agent.view_path(idg.input_data ,agent.traj_state_list)
 
             ros_next_state.data = np.asarray(agent.traj_state_list).reshape(-1)
             next_target_pub.publish(ros_next_state)
