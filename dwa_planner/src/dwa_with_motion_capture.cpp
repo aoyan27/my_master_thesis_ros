@@ -24,6 +24,7 @@
 
 using namespace std;
 
+#define collision_threshold 0.15
 
 
 double MAX_VEL;
@@ -49,7 +50,7 @@ visualization_msgs::Marker current_state;
 visualization_msgs::Marker before_state;
 geometry_msgs::Point next_target;
 
-vector<geometry_msgs::Point> obs_position;
+vector<geometry_msgs::Point> obs_position_list;
 vector<geometry_msgs::Point > target_path;
 
 
@@ -223,6 +224,28 @@ geometry_msgs::PoseStamped move(geometry_msgs::PoseStamped robot_pose,
 	return next_pose;
 }
 
+double calc_dist(geometry_msgs::Point a, geometry_msgs::Point b)
+{
+	return sqrt(pow((a.x-b.x), 2) + pow((a.y-b.y), 2));
+}
+
+bool check_collision(geometry_msgs::PoseStamped robot, vector<geometry_msgs::Point> obs_list)
+{
+	bool collision_flag = false;
+	size_t obs_list_size = obs_list.size();
+	for(size_t j=0; j<obs_list_size; j++){
+		double tmp_dist = calc_dist(robot.pose.position, obs_list[j]);
+		// cout<<"tmp_dist : "<<tmp_dist<<endl;
+		if(tmp_dist < collision_threshold){
+			// cout<<"j"<<j<<endl;
+			// cout<<"obs_list["<<j<<"] : "<<obs_list[j]<<endl;
+			collision_flag = true;
+			break;
+		}
+	}
+	return collision_flag;
+}
+
 vector<geometry_msgs::PoseStamped> get_future_trajectory(double linear, double angular, double sim_time, double dt)
 {
 	vector<geometry_msgs::PoseStamped> trajectory;
@@ -244,10 +267,6 @@ vector<geometry_msgs::PoseStamped> get_future_trajectory(double linear, double a
 	return trajectory;
 }
 
-double calc_dist(geometry_msgs::Point a, geometry_msgs::Point b)
-{
-	return sqrt(pow((a.x-b.x), 2) + pow((a.y-b.y), 2));
-}
 
 double check_nearest_obs_dist(vector<geometry_msgs::PoseStamped> traj, 
 							vector<geometry_msgs::Point> obs_list)
@@ -370,10 +389,10 @@ double check_inverse_target_path_dist(vector<geometry_msgs::PoseStamped> traj,
 
 	}
 	// cout<<"min_dist : "<<min_dist<<endl;
-	if(min_dist < 0.001){
-		min_dist = 0.01;
-	}
-	double inverse_target_path_dist = 1.0 / min_dist;
+	// if(min_dist < 0.001){
+		// min_dist = 0.01;
+	// }
+	double inverse_target_path_dist = 10.0 - min_dist;
 	
 	return inverse_target_path_dist;
 }
@@ -392,50 +411,58 @@ vector<double> evaluation_trajectories(vector<double> Vr, vector<double> sample_
 			vector<geometry_msgs::PoseStamped> trajectory;
 			trajectory = get_future_trajectory(linear, angular, SIM_TIME, dt);
 			// cout<<"trajectory_size : "<<trajectory.size()<<endl;
-			double eval_obs_dist = check_nearest_obs_dist(trajectory, obs_position);
-			// printf("eval_obs_dist : %.4f\n", eval_obs_dist);
-			double eval_vel = fabs(linear);
-			// printf("eval_vel : %.4f\n", eval_vel);
-			double eval_heading = check_goal_heading(trajectory, next_target);
-			// printf("eval_heading : %.4f\n", eval_heading);
-			double eval_inv_target = check_inverse_target_path_dist(trajectory, target_path);
-			// printf("eval_inv_target : %.4f\n", eval_inv_target);
+			if(trajectory.size() != 0){
+				double eval_obs_dist = check_nearest_obs_dist(trajectory, obs_position_list);
+				// printf("eval_obs_dist : %.4f\n", eval_obs_dist);
+				double eval_vel = fabs(linear);
+				// printf("eval_vel : %.4f\n", eval_vel);
+				double eval_heading = check_goal_heading(trajectory, next_target);
+				// printf("eval_heading : %.4f\n", eval_heading);
+				double eval_inv_target = check_inverse_target_path_dist(trajectory, target_path);
+				// printf("eval_inv_target : %.4f\n", eval_inv_target);
 
-			vector<double> path_and_eval{linear, angular, 
-										 eval_obs_dist, eval_vel, eval_heading, eval_inv_target};
-			path_and_eval_list.push_back(path_and_eval);
-			
-			visualization_msgs::Marker vis_traj;
-			set_vis_traj(trajectory, vis_traj, i);
-			path_candidate.markers.push_back(vis_traj);
-			i++;
+				vector<double> path_and_eval{linear, angular, 
+											 eval_obs_dist, eval_vel, 
+											 eval_heading, eval_inv_target};
+				path_and_eval_list.push_back(path_and_eval);
+				
+				visualization_msgs::Marker vis_traj;
+				set_vis_traj(trajectory, vis_traj, i);
+				path_candidate.markers.push_back(vis_traj);
+				i++;
+			}
 		}
 	}
 
-	double max_total_eval = COST_OBS*path_and_eval_list[0][2] 
-						  + COST_VEL*path_and_eval_list[0][3] 
-						  + COST_HEAD*path_and_eval_list[0][4]
-						  + COST_INV_TARGET*path_and_eval_list[0][5];
-	size_t max_eval_index = 0;
+	double selected_linear = 0.0; 
+	double selected_angular = 0.0;
 	size_t path_and_eval_list_size = path_and_eval_list.size();
-	for(size_t i=1; i<path_and_eval_list_size; i++){
-		// cout<<"============== i : "<<i<<" ============ "<<endl;
-		double tmp_total_eval = COST_OBS*path_and_eval_list[i][2] 
-							  + COST_VEL*path_and_eval_list[i][3] 
-							  + COST_HEAD*path_and_eval_list[i][4]
-							  + COST_INV_TARGET*path_and_eval_list[i][5];
-		// cout<<"tmp_total_eval : "<<tmp_total_eval<<endl;
-		if(tmp_total_eval > max_total_eval){
-			max_total_eval = tmp_total_eval;
-			max_eval_index = i;
+	// cout<<"path_and_eval_list_size : "<<path_and_eval_list_size<<endl;
+	if(path_and_eval_list_size != 0){
+		double max_total_eval = COST_OBS*path_and_eval_list[0][2] 
+							  + COST_VEL*path_and_eval_list[0][3] 
+							  + COST_HEAD*path_and_eval_list[0][4]
+							  + COST_INV_TARGET*path_and_eval_list[0][5];
+		size_t max_eval_index = 0;
+		for(size_t i=1; i<path_and_eval_list_size; i++){
+			// cout<<"============== i : "<<i<<" ============ "<<endl;
+			double tmp_total_eval = COST_OBS*path_and_eval_list[i][2] 
+								  + COST_VEL*path_and_eval_list[i][3] 
+								  + COST_HEAD*path_and_eval_list[i][4]
+								  + COST_INV_TARGET*path_and_eval_list[i][5];
+			// cout<<"tmp_total_eval : "<<tmp_total_eval<<endl;
+			if(tmp_total_eval > max_total_eval){
+				max_total_eval = tmp_total_eval;
+				max_eval_index = i;
+			}
 		}
-	}
-	printf("max_total_eval : %.4f\n", max_total_eval);
-	printf("max_eval_index : %d\n", (int)max_eval_index);
+		printf("max_total_eval : %.4f\n", max_total_eval);
+		printf("max_eval_index : %d\n", (int)max_eval_index);
 
-	selected_path = get_selected_path(path_candidate, max_eval_index);
-	double selected_linear = path_and_eval_list[max_eval_index][0];
-	double selected_angular = path_and_eval_list[max_eval_index][1];
+		selected_path = get_selected_path(path_candidate, max_eval_index);
+		selected_linear = path_and_eval_list[max_eval_index][0];
+		selected_angular = path_and_eval_list[max_eval_index][1];
+	}
 	
 	vector<double> selected_velocity_vector{selected_linear, selected_angular};
 
@@ -482,7 +509,7 @@ vector<geometry_msgs::Point> get_continuous_obs_position(nav_msgs::OccupancyGrid
 		obs_position.y = y;
 		obs_position.z = 0.0;
 
-		continuous_obs_position.push_back(obs_position);
+		continuous_obs_position[i] = obs_position;
 	}
 
 	return continuous_obs_position;
@@ -491,8 +518,9 @@ vector<geometry_msgs::Point> get_continuous_obs_position(nav_msgs::OccupancyGrid
 void localMapCallback(nav_msgs::OccupancyGrid msg)
 {
 	local_map = msg;
+	obs_position_list.clear();
 	// cout<<"Subscribe local_map!!"<<endl;
-	obs_position = get_continuous_obs_position(msg);
+	obs_position_list = get_continuous_obs_position(msg);
 	sub_local_map = true;
 }
 
