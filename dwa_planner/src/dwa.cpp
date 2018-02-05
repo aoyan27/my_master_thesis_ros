@@ -400,7 +400,8 @@ vector<double> evaluation_trajectories(vector<double> Vr, vector<double> sample_
 				printf("eval_inv_target : %.4f\n", eval_inv_target);
 
 				vector<double> path_and_eval{linear, angular, 
-											 eval_obs_dist, eval_vel, eval_heading, eval_inv_target};
+											 eval_obs_dist, eval_vel, 
+											 eval_heading, eval_inv_target};
 				path_and_eval_list.push_back(path_and_eval);
 
 				visualization_msgs::Marker vis_traj;
