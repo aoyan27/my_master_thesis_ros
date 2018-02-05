@@ -61,8 +61,11 @@ bool sub_local_map = false;
 bool sub_lcl = false;
 bool sub_next_target = false;
 
+int vibration_suppression_count = 0;
+
 vector<double> get_DynamicWindow(nav_msgs::Odometry state, double dt)
 {
+	vibration_suppression_count++;
 	vector<double> Vs{MIN_VEL, MAX_VEL, -MAX_ROT_VEL, MAX_ROT_VEL};
 	cout<<"**********************"<<endl;
 	for(size_t i=0; i<Vs.size();i++){
@@ -88,6 +91,15 @@ vector<double> get_DynamicWindow(nav_msgs::Odometry state, double dt)
 			if(Vd[i] < Vr[i]){
 				Vr[i] = Vd[i];
 			}	
+		}
+	}
+	if(vibration_suppression_count < 10){
+		vibration_suppression_count = 0;
+		if(angular <= 0){
+			Vr[3] = 0.0;
+		}
+		else{
+			Vr[2] = 0.0;
 		}
 	}
 	cout<<"--------------------"<<endl;
@@ -383,21 +395,21 @@ vector<double> evaluation_trajectories(vector<double> Vr, vector<double> sample_
 	int i = 0;
 	for(double linear=Vr[0]; linear<=Vr[1]; linear+=sample_resolutions[0]){
 		for(double angular=Vr[2]; angular<Vr[3]; angular+=sample_resolutions[1]){
-			cout<<"============== i : "<<i<<" ============ "<<endl;
-			cout<<"linear : "<<linear<<endl;
-			cout<<"angular : "<<angular<<endl;
+			// cout<<"============== i : "<<i<<" ============ "<<endl;
+			// cout<<"linear : "<<linear<<endl;
+			// cout<<"angular : "<<angular<<endl;
 			vector<geometry_msgs::PoseStamped> trajectory;
 			trajectory = get_future_trajectory(linear, angular, SIM_TIME, dt);
 			// cout<<"trajectory_size : "<<trajectory.size()<<endl;
 			if(trajectory.size() != 0){
 				double eval_obs_dist = check_nearest_obs_dist(trajectory, obs_position_list);
-				printf("eval_obs_dist : %.4f\n", eval_obs_dist);
+				// printf("eval_obs_dist : %.4f\n", eval_obs_dist);
 				double eval_vel = fabs(linear);
-				printf("eval_vel : %.4f\n", eval_vel);
+				// printf("eval_vel : %.4f\n", eval_vel);
 				double eval_heading = check_goal_heading(trajectory, next_target);
-				printf("eval_heading : %.4f\n", eval_heading);
+				// printf("eval_heading : %.4f\n", eval_heading);
 				double eval_inv_target = check_inverse_target_path_dist(trajectory, target_path);
-				printf("eval_inv_target : %.4f\n", eval_inv_target);
+				// printf("eval_inv_target : %.4f\n", eval_inv_target);
 
 				vector<double> path_and_eval{linear, angular, 
 											 eval_obs_dist, eval_vel, 
