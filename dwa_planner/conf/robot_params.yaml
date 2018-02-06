@@ -5,7 +5,7 @@ dwa:
     acceleraton_limit_translation: 9.0
     acceleraton_limit_rotation: 7.00
     velocity_samples: 10
-    rotation_velocity_samples: 10
+    rotation_velocity_samples: 7
     simulation_time: 3.0
     cost_nearest_obstacle: 0.0
     cost_velocity: 0.5
