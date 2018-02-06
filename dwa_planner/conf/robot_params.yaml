@@ -7,7 +7,7 @@ dwa:
     velocity_samples: 10
     rotation_velocity_samples: 10
     simulation_time: 3.0
-    cost_nearest_obstacle: 0.0
+    cost_nearest_obstacle: 0.5
     cost_velocity: 0.5
     cost_goal_heading: 0.0
     cost_inverse_target_path: 1.0
