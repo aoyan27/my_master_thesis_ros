@@ -64,6 +64,8 @@ bool sub_next_target = false;
 
 bool first_flag = true;
 
+int vibration_suppression_count = 0;
+
 vector<double> get_DynamicWindow(visualization_msgs::Marker state, visualization_msgs::Marker &before_state_, double dt)
 {
 	vector<double> Vs{MIN_VEL, MAX_VEL, -MAX_ROT_VEL, MAX_ROT_VEL};
@@ -126,6 +128,17 @@ vector<double> get_DynamicWindow(visualization_msgs::Marker state, visualization
 			}	
 		}
 	}
+	if(vibration_suppression_count < 5){
+		vibration_suppression_count = 0;
+		if(fabs(angular) > 0.1){
+			if(angular < 0){
+				Vr[3] = 0.0;
+			}
+			else{
+				Vr[2] = 0.0;
+			}
+		}
+	}
 	cout<<"--------------------"<<endl;
 	for(size_t i=0; i<Vr.size();i++){
 		cout<<"Vr["<<i<<"] : "<<Vr[i]<<endl;
@@ -165,9 +178,9 @@ void set_vis_traj(vector<geometry_msgs::PoseStamped> traj,
 
 	marker.scale.x = 0.005;
 
-	marker.color.r = 0.5;
-	marker.color.g = 1.0;
-	marker.color.b = 0.0;
+	marker.color.r = 99.0 / 255.0;
+	marker.color.g = 124.0 / 255.0;
+	marker.color.b = 52.0 / 255.0;
 	marker.color.a = 1.0;
 
 	// marker.lifetime = ros::Duration();
@@ -214,12 +227,14 @@ geometry_msgs::PoseStamped set_robot_pose(double x, double y, double yaw)
 
 geometry_msgs::PoseStamped move(geometry_msgs::PoseStamped robot_pose, 
 								double linear, double angular, double dt)
-{
-	double next_yaw = tf::getYaw(robot_pose.pose.orientation) + angular*dt;
+{	double yaw = tf::getYaw(robot_pose.pose.orientation);
+	double next_yaw = yaw + angular*dt;
 	// cout<<"next_yaw : "<<next_yaw<<endl;
-	double next_x = robot_pose.pose.position.x + linear*cos(next_yaw)*dt;
+	double next_x = robot_pose.pose.position.x 
+				  + (-1.0*linear/angular*sin(yaw) + linear/angular*sin(yaw+angular*dt));
 	// cout<<"next_x : "<<next_x<<endl;
-	double next_y = robot_pose.pose.position.y + linear*sin(next_yaw)*dt;
+	double next_y = robot_pose.pose.position.y 
+				  + (linear/angular*cos(yaw) - linear/angular*cos(yaw+angular*dt));
 	// cout<<"next_y : "<<next_y<<endl;
 	geometry_msgs::PoseStamped next_pose;
 	next_pose = set_robot_pose(next_x, next_y, next_yaw);
@@ -403,10 +418,10 @@ double check_inverse_target_path_dist(vector<geometry_msgs::PoseStamped> traj,
 
 	}
 	// cout<<"min_dist : "<<min_dist<<endl;
-	if(min_dist < 0.001){
-		min_dist = 0.01;
-	}
-	double inverse_target_path_dist = 1.0 / min_dist;
+	// if(min_dist < 0.001){
+		// min_dist = 0.01;
+	// }
+	double inverse_target_path_dist = 10.0 - min_dist;
 	
 	return inverse_target_path_dist;
 }
