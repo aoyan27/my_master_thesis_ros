@@ -128,17 +128,17 @@ vector<double> get_DynamicWindow(visualization_msgs::Marker state, visualization
 			}	
 		}
 	}
-	if(vibration_suppression_count < 5){
-		vibration_suppression_count = 0;
-		if(fabs(angular) > 0.1){
-			if(angular < 0){
-				Vr[3] = 0.0;
-			}
-			else{
-				Vr[2] = 0.0;
-			}
-		}
-	}
+	// if(vibration_suppression_count < 5){
+		// vibration_suppression_count = 0;
+		// if(fabs(angular) > 0.1){
+			// if(angular < 0){
+				// Vr[3] = 0.0;
+			// }
+			// else{
+				// Vr[2] = 0.0;
+			// }
+		// }
+	// }
 	cout<<"--------------------"<<endl;
 	for(size_t i=0; i<Vr.size();i++){
 		cout<<"Vr["<<i<<"] : "<<Vr[i]<<endl;
