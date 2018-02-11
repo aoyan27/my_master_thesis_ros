@@ -11,8 +11,8 @@
 #include <tf/transform_broadcaster.h>
 
 
-#define Width 8
-#define Length 8
+#define Width 10
+#define Length 10
 #define Resolution 0.25
 
 #define INV_Resolution 1.0/Resolution

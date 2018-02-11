@@ -164,6 +164,7 @@ add_executable(convert_human2input_data src/convert_human2input_data.cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(create_input_grid_map
   ${catkin_LIBRARIES}
+  ${PCL_LIBRARIEs}
 )
 
 target_link_libraries(convert_human2input_data
