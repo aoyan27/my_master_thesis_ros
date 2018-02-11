@@ -167,7 +167,8 @@ void CvtHuman2Input::humanVelocityCallback(visualization_msgs::MarkerArray msg)
 		vector<geometry_msgs::Vector3> human_velocity_list;
 		vector<geometry_msgs::PoseStamped> human_pose_list;
 		vector<double> dist_list;
-
+		
+		clock_t start = clock();
 		for(size_t i=0; i<num_human; i++){
 			// cout<<"human_id : "<<msg.markers[i].id<<endl;
 			human_id_list.push_back(msg.markers[i].id);
@@ -204,6 +205,8 @@ void CvtHuman2Input::humanVelocityCallback(visualization_msgs::MarkerArray msg)
 			extract_input_humans(human_id_list, human_velocity_list, human_pose_list, 
 								 dist_list, num_human_in_range);
 		}
+		clock_t end = clock();
+		cout << "duration = " << (double)(end - start) / CLOCKS_PER_SEC << "sec.\n";
 	}
 }
 

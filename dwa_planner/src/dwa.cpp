@@ -95,7 +95,7 @@ vector<double> get_DynamicWindow(nav_msgs::Odometry state, double dt)
 	}
 	if(vibration_suppression_count < 5){
 		vibration_suppression_count = 0;
-		if(fabs(angular) > 0.1){
+		if(fabs(angular) > 0.05){
 			if(angular < 0){
 				Vr[3] = 0.0;
 			}
@@ -694,7 +694,7 @@ int main(int argc, char** argv)
 
 			knm_tiny_msgs::Velocity control_command;
 			control_command.op_linear = velocity_vector[0];
-			control_command.op_angular = -1.0*velocity_vector[1];
+			control_command.op_angular = velocity_vector[1];
 			cmd_vel_pub.publish(control_command);
 
 			// vis_path_single_pub.publish(vis_traj);
