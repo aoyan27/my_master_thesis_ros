@@ -153,7 +153,7 @@ include_directories(
 # add_dependencies(ros_value_iteration_networks ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(pc2local_map_for_vin src/pc2local_map_for_vin.cpp)
+add_executable(create_input_grid_map src/create_input_grid_map.cpp)
 
 add_executable(convert_human2input_data src/convert_human2input_data.cpp)
 
@@ -162,7 +162,7 @@ add_executable(convert_human2input_data src/convert_human2input_data.cpp)
 # add_dependencies(ros_value_iteration_networks_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(pc2local_map_for_vin
+target_link_libraries(create_input_grid_map
   ${catkin_LIBRARIES}
 )
 
