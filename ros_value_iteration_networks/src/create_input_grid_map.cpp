@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <boost/thread.hpp>
+#include <geometry_msgs/PoseStamped.h>
 #include <sensor_msgs/point_cloud_conversion.h>
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -52,8 +53,13 @@ vector< vector<int> > input_map_2d;
 
 vector<int> extract_range;
 
+geometry_msgs::PoseStamped local_goal;
+nav_msgs::OccupancyGrid reward_map;
+vector< vector<int> > reward_map_2d;
+
 bool sub_global_map = false;
 bool sub_lcl = false;
+bool sub_local_goal = false;
 
 
 enum cost{FREE=0, LETHAL=100};
@@ -360,7 +366,7 @@ void lclCallback(nav_msgs::Odometry msg)
 	set_origin_grid_map(static_input_map, lcl);
 	set_origin_grid_map(real_input_map, lcl);
 	set_origin_grid_map(input_map, lcl);
-
+	set_origin_grid_map(reward_map, lcl);
 }
 
 void globalMapCallback(nav_msgs::OccupancyGrid msg)
@@ -379,6 +385,7 @@ void globalMapCallback(nav_msgs::OccupancyGrid msg)
 	set_init_grid_map(static_input_map);
 	set_init_grid_map(real_input_map);
 	set_init_grid_map(input_map);
+	set_init_grid_map(reward_map);
 }
 
 
@@ -446,6 +453,82 @@ void concat_grid_map(vector< vector<int> > &static_2d, vector< vector<int> > &re
 	}
 }
 
+void create_reward_map(geometry_msgs::PoseStamped &local_goal, 
+					   vector< vector<int> > &reward_2d, 
+					   vector< vector<int> > &expand_2d)
+{
+	vector<int> discreate_local_goal = continuous2discreate(local_goal.pose.position.x, 
+															local_goal.pose.position.y, 
+															global_map, true);
+	// cout<<"discreate_local_goal : "<<endl;
+	// view_array(discreate_local_goal);
+
+	vector<int> discreate_lcl = continuous2discreate(lcl.pose.pose.position.x, 
+													 lcl.pose.pose.position.y, 
+													 global_map, true);
+	// cout<<"discreate_lcl : "<<endl;
+	// view_array(discreate_lcl);
+
+	int diff_x = discreate_local_goal[0] - discreate_lcl[0];
+	int diff_y = discreate_local_goal[1] - discreate_lcl[1];
+	// cout<<"diff_x : "<<diff_x<<endl;
+	// cout<<"diff_y : "<<diff_y<<endl;
+	int x_index = discreate_local_goal[0]-extract_range[0];
+	int y_index = discreate_local_goal[1]-extract_range[1];
+	// cout<<"x_index : "<<x_index<<endl;
+	// cout<<"y_index : "<<y_index<<endl;
+	if(diff_x > 15){
+		x_index -= 3;	
+	}
+	else if(diff_x < -15){
+		x_index += 3;
+	}
+
+	if(diff_y > 15){
+		y_index -= 3;
+	}
+	else if(diff_y < -15){
+		y_index += 3;
+	}
+	// cout<<"x_index : "<<x_index<<endl;
+	// cout<<"y_index : "<<y_index<<endl;
+
+	init_map_2d(reward_2d, extract_range);
+	int rows = reward_2d.size();
+	int count = 0;
+	while(count <= (int)0.5*rows){
+		if(expand_2d[y_index][x_index] != _LETHAL){
+			break;
+		}
+		else{
+			// cout<<"onstacle exist!!!"<<endl;
+			if(diff_x > 0){
+				x_index -= 1;	
+			}
+			else{
+				x_index += 1;
+			}
+
+			if(diff_y > 0){
+				y_index -= 1;
+			}
+			else{
+				y_index += 1;
+			}
+		}
+	}
+
+	reward_2d[y_index][x_index] = _LETHAL;
+	// cout<<"reward_2d : "<<endl;
+	// view_2d_array(reward_2d);
+}
+
+void localGoalCallback(geometry_msgs::PoseStamped msg)
+{
+	sub_local_goal = true;
+	local_goal = msg;
+}
+
 
 int main(int argc,char** argv)
 {
@@ -459,14 +542,18 @@ int main(int argc,char** argv)
 	ros::Subscriber sub_real = n.subscribe("/velodyne2/curvature",1,CurvatureCallback);
 	ros::Subscriber sub_min_max = n.subscribe("/velodyne2/rm_ground2",1,MinMaxCallback);
 
+	ros::Subscriber sub_local_goal = n.subscribe("/local_goal", 1, localGoalCallback);
+
 	ros::Publisher pub_map_static 
-		= n.advertise<nav_msgs::OccupancyGrid>("/input_gird_map/vin/static", 1);
+		= n.advertise<nav_msgs::OccupancyGrid>("/input_grid_map/vin/static", 1);
 	ros::Publisher pub_map_real 
-		= n.advertise<nav_msgs::OccupancyGrid>("/input_gird_map/vin/real", 1);
+		= n.advertise<nav_msgs::OccupancyGrid>("/input_grid_map/vin/real", 1);
 	ros::Publisher pub_map
-		= n.advertise<nav_msgs::OccupancyGrid>("/input_gird_map/vin", 1);
+		= n.advertise<nav_msgs::OccupancyGrid>("/input_grid_map/vin", 1);
 	ros::Publisher pub_map_expand
-		= n.advertise<nav_msgs::OccupancyGrid>("/input_gird_map/vin/expand", 1);
+		= n.advertise<nav_msgs::OccupancyGrid>("/input_grid_map/vin/expand", 1);
+	ros::Publisher pub_reward_map
+		= n.advertise<nav_msgs::OccupancyGrid>("/reward_map/vin", 1);
 
 	ros::Publisher pub_curvature_debug 
 		= n.advertise<sensor_msgs::PointCloud>("/curvature/debug", 1);
@@ -484,7 +571,7 @@ int main(int argc,char** argv)
 
 
 	while (ros::ok()){
-		if(sub_lcl && sub_global_map){
+		if(sub_lcl && sub_global_map && sub_local_goal){
 			// clock_t start=clock();
 			vector<int> base_input_map_1d = reshape_1dim(static_input_map_2d);
 			set_grid_data(static_input_map, base_input_map_1d);
@@ -521,13 +608,17 @@ int main(int argc,char** argv)
 
 			ex_map.expandObstacle(input_map);
 			pub_map_expand.publish(ex_map.local_map);
-			// vector< vector<int> > ex_map_2d;
-			// ex_map_2d = reshape_2dim(ex_map.local_map.data, 
-									 // ex_map.local_map.info.height, 
-									 // ex_map.local_map.info.width);
+			vector< vector<int> > ex_map_2d;
+			ex_map_2d = reshape_2dim(ex_map.local_map.data, 
+									 ex_map.local_map.info.height, 
+									 ex_map.local_map.info.width);
 			// cout<<"ex_map_2d : "<<endl;
 			// view_2d_array(ex_map_2d);
 
+			create_reward_map(local_goal, reward_map_2d, ex_map_2d);
+			vector<int> reward_map_1d = reshape_1dim(reward_map_2d);
+			set_grid_data(reward_map, reward_map_1d);
+			pub_reward_map.publish(reward_map);
 			
 			// cout<<"duration = "<<(double)(clock()-start)/CLOCKS_PER_SEC<<endl;
 		}
