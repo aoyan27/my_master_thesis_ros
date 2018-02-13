@@ -37,10 +37,10 @@ class InputDataGenerator:
     def __init__(self, input_image_size=(20, 20), num_human=1):
         self.input_image_size = input_image_size
 
-        self.gridmap_sub = \
-                rospy.Subscriber("/input_grid_map/vin/expand", OccupancyGrid, self.gridMapCallback)
         #  self.gridmap_sub = \
-                #  rospy.Subscriber("/input_grid_map/vin", OccupancyGrid, self.gridMapCallback)
+                #  rospy.Subscriber("/input_grid_map/vin/expand", OccupancyGrid, self.gridMapCallback)
+        self.gridmap_sub = \
+                rospy.Subscriber("/input_grid_map/vin", OccupancyGrid, self.gridMapCallback)
         self.human_sub = \
                 rospy.Subscriber("/other_agents_state", Float32MultiArray, self.humanCallback)
         self.lcl_sub = rospy.Subscriber("/lcl5", Odometry, self.lclCallback)
@@ -472,7 +472,7 @@ class ValueIterationNetworkAgent:
         state_list.append(list(state))
         #  print "state_list : ", state_list
         continuous_state_list.append(continuous_state)
-        print "continuous_state_list : ", continuous_state_list
+        #  print "continuous_state_list : ", continuous_state_list
 
         for i in xrange(self.max_challenge_times):
             action = self.get_action(input_data, \
