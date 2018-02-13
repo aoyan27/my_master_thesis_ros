@@ -1,0 +1,13 @@
+dwa:
+    max_velocity: 0.9
+    min_velocity: 0.4
+    max_rotation_velocity: 10.0
+    acceleraton_limit_translation: 9.0
+    acceleraton_limit_rotation: 7.00
+    velocity_samples: 10
+    rotation_velocity_samples: 7
+    simulation_time: 3.0
+    cost_nearest_obstacle: 0.5
+    cost_velocity: 0.5
+    cost_goal_heading: 0.0
+    cost_inverse_target_path: 1.0
