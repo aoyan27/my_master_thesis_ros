@@ -1,8 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-	<arg name="map_file" default="$(find global_path_planner)/global_maps/crcl_global_grid_map.yaml"/>
-	<node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
-
+	<include file="$(find global_path_planner)/launch/global_map.launch"/>
 	<node name="a_star_global" pkg="global_path_planner" type="a_star_global" output="screen" />
 
 	<node name="a_star_local_goal" pkg="global_path_planner" type="a_star_local_goal" output="screen" />
