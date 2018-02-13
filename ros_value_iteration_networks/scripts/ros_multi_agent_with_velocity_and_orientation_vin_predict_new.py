@@ -341,7 +341,7 @@ class InputDataGenerator:
 
 
 class ValueIterationNetworkAgent:
-    def __init__(self, idg, model_path, gpu, input_image_size):
+    def __init__(self, idg, model_path, gpu, input_image_size, max_times=None):
         self.idg = idg
 
         self.model = ValueIterationNetwork(l_q=9, n_out=9, k=25)
@@ -360,8 +360,12 @@ class ValueIterationNetworkAgent:
         self.traj_state_list = []
         self.traj_continuous_state_list = []
         self.traj_action_list = []
-
-        self.max_challenge_times = input_image_size[0]/2 + input_image_size[1]/2
+        
+        self.max_challenge_times = None
+        if max_times is None:
+            self.max_challenge_times = input_image_size[0]/2 + input_image_size[1]/2
+        else:
+            self.max_challenge_times = max_times
         #  print "max_challenge_times : ", max_challenge_times
 
     def set_action(self):
@@ -527,6 +531,7 @@ def main(model_path, gpu):
             = rospy.Publisher("/vin/target_path/continuous", Float32MultiArray, queue_size=1)
 
     agent = ValueIterationNetworkAgent(idg, model_path, gpu, idg.input_image_size)
+    #  agent = ValueIterationNetworkAgent(idg, model_path, gpu, idg.input_image_size, max_times=1)
     
     input_data = None
 
@@ -558,21 +563,6 @@ def main(model_path, gpu):
             other_agent_flag = idg.generate_other_agent_data()
             
             if my_agent_flag and other_agent_flag:
-                #  action = agent.get_action(idg.input_data, \
-                                          #  idg.position_data, idg.velocity_data, \
-                                          #  idg.orientation_data,\
-                                          #  idg.other_position_data, idg.other_velocity_data, \
-                                          #  idg.other_orientation_data)
-                #  print "action : ", action, "(", agent.dirs[int(action)], ")"
-                #  next_state, out_of_range, collision \
-                        #  = agent.move(state_data[0], action, input_data[0][0])
-                #  print "next_state : ", next_state
-                #  print "out_of_range : ", out_of_range
-                #  print "collision : ", collision
-                #  ros_next_state.data = next_state
-                #  print "ros_next_state : ", ros_next_state
-                #  next_target_pub.publish(ros_next_state)
-                
                 agent.get_path(idg.input_data, \
                                idg.position_data, idg.velocity_data, idg.orientation_data,\
                                idg.other_position_data, idg.other_velocity_data, \
