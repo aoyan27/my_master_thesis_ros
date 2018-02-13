@@ -9,8 +9,11 @@
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/GridCells.h>
-#include <boost/thread.hpp>
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <std_msgs/Float32MultiArray.h>
 
+#include <tf/transform_datatypes.h>
 #include <tf/transform_listener.h>
 
 #include <time.h>
@@ -32,7 +35,7 @@
 #define _UNEXPLORE 50
 #define _LETHAL 100
 
-#define Expand_radius 0.15
+#define Expand_radius 0.25
 
 
 using namespace std;
@@ -57,9 +60,15 @@ geometry_msgs::PoseStamped local_goal;
 nav_msgs::OccupancyGrid reward_map;
 vector< vector<int> > reward_map_2d;
 
+
+std_msgs::Float32MultiArray other_agents_state;
+
 bool sub_global_map = false;
 bool sub_lcl = false;
 bool sub_local_goal = false;
+bool sub_extract_human = false;
+bool sub_curvature = false;
+bool sub_minmax = false;
 
 
 enum cost{FREE=0, LETHAL=100};
@@ -198,6 +207,17 @@ void view_array(vector<int> array)
 	printf("[ ");
 	for(size_t i=0; i<array_size1; i++){
 		printf("%3d ", array[i]);
+	}
+	printf(" ]\n");
+}
+
+void view_array_float(vector<float> array)
+{	
+	size_t array_size1 = array.size(); 
+	// cout<<"array_size1 : "<<array_size1<<endl;
+	printf("[ ");
+	for(size_t i=0; i<array_size1; i++){
+		printf("%.3f ", array[i]);
 	}
 	printf(" ]\n");
 }
@@ -424,6 +444,7 @@ void CurvatureCallback(sensor_msgs::PointCloud msg){
 	curvature_in = msg;
 	// cout<<"msg.header : "<<msg.header<<endl;
 	//cout<<"curv_callback"<<endl;
+	sub_curvature = true;
 }
 
 boost::mutex mutex_minmax;
@@ -433,6 +454,8 @@ void MinMaxCallback(sensor_msgs::PointCloud2 msg){
 	sensor_msgs::PointCloud2 pc2;
 	pc2 = msg;
 	sensor_msgs::convertPointCloud2ToPointCloud(pc2, minmax_in);
+
+	sub_minmax = true;
 }
 
 void concat_grid_map(vector< vector<int> > &static_2d, vector< vector<int> > &real_2d, 
@@ -477,19 +500,19 @@ void create_reward_map(geometry_msgs::PoseStamped &local_goal,
 	int y_index = discreate_local_goal[1]-extract_range[1];
 	// cout<<"x_index : "<<x_index<<endl;
 	// cout<<"y_index : "<<y_index<<endl;
-	if(diff_x > 15){
-		x_index -= 3;	
-	}
-	else if(diff_x < -15){
-		x_index += 3;
-	}
+	// if(diff_x > 15){
+		// x_index -= 5;	
+	// }
+	// else if(diff_x < -15){
+		// x_index += 5;
+	// }
 
-	if(diff_y > 15){
-		y_index -= 3;
-	}
-	else if(diff_y < -15){
-		y_index += 3;
-	}
+	// if(diff_y > 15){
+		// y_index -= 5;
+	// }
+	// else if(diff_y < -15){
+		// y_index += 5;
+	// }
 	// cout<<"x_index : "<<x_index<<endl;
 	// cout<<"y_index : "<<y_index<<endl;
 
@@ -503,17 +526,17 @@ void create_reward_map(geometry_msgs::PoseStamped &local_goal,
 		else{
 			// cout<<"onstacle exist!!!"<<endl;
 			if(diff_x > 0){
-				x_index -= 1;	
+				x_index = discreate_lcl[0] - extract_range[0] + 1;	
 			}
 			else{
-				x_index += 1;
+				x_index = discreate_lcl[0] - extract_range[0] - 1;	
 			}
 
 			if(diff_y > 0){
-				y_index -= 1;
+				y_index = discreate_lcl[1] - extract_range[1] + 1;
 			}
 			else{
-				y_index += 1;
+				y_index = discreate_lcl[1] - extract_range[1] - 1;
 			}
 		}
 	}
@@ -530,6 +553,50 @@ void localGoalCallback(geometry_msgs::PoseStamped msg)
 }
 
 
+void extractHumanCallback(visualization_msgs::MarkerArray msg)
+{
+	sub_extract_human = true;
+
+	other_agents_state.data.clear();
+
+	int num_human = msg.markers.size();
+	cout<<"num_human : "<<num_human<<endl;
+	for(int i=0; i<num_human; i++){
+		vector<int> tmp_discreate = continuous2discreate(msg.markers[i].pose.position.x, 
+														 msg.markers[i].pose.position.y, 
+														 global_map, true);
+		float yaw = tf::getYaw(msg.markers[i].pose.orientation);
+		float x = tmp_discreate[0] - extract_range[0];
+		float y = tmp_discreate[1] - extract_range[1];
+
+		float max_diff_x = extract_range[2] - extract_range[0];
+		float max_diff_y = extract_range[3] - extract_range[1];
+		// cout<<"max_diff_x : "<<max_diff_x<<endl;
+		// cout<<"max_diff_y : "<<max_diff_y<<endl;
+		if(x < 0.0){
+			x = 0.0;
+		}
+		if(y < 0.0){
+			y = 0.0;
+		}
+		if(x >= max_diff_x){
+			x = max_diff_x-1;
+		}
+		if(y >= max_diff_y){
+			y = max_diff_y-1;
+		}
+		vector<float> other_agent_state{x, y, yaw};
+		cout<<"other_agent_state : "<<endl;
+		view_array_float(other_agent_state);
+		
+		for(size_t j=0; j<other_agent_state.size(); j++){
+			other_agents_state.data.push_back(other_agent_state[j]);
+		}
+	}
+
+}
+
+
 int main(int argc,char** argv)
 {
 
@@ -543,17 +610,25 @@ int main(int argc,char** argv)
 	ros::Subscriber sub_min_max = n.subscribe("/velodyne2/rm_ground2",1,MinMaxCallback);
 
 	ros::Subscriber sub_local_goal = n.subscribe("/local_goal", 1, localGoalCallback);
+	ros::Subscriber sub_extract_human = n.subscribe("/extract_human", 1, extractHumanCallback);
 
 	ros::Publisher pub_map_static 
 		= n.advertise<nav_msgs::OccupancyGrid>("/input_grid_map/vin/static", 1);
+	ros::Publisher pub_map_static_expand 
+		= n.advertise<nav_msgs::OccupancyGrid>("/input_grid_map/vin/static/expand", 1);
 	ros::Publisher pub_map_real 
 		= n.advertise<nav_msgs::OccupancyGrid>("/input_grid_map/vin/real", 1);
+	ros::Publisher pub_map_real_expand 
+		= n.advertise<nav_msgs::OccupancyGrid>("/input_grid_map/vin/real/expand", 1);
 	ros::Publisher pub_map
 		= n.advertise<nav_msgs::OccupancyGrid>("/input_grid_map/vin", 1);
 	ros::Publisher pub_map_expand
 		= n.advertise<nav_msgs::OccupancyGrid>("/input_grid_map/vin/expand", 1);
 	ros::Publisher pub_reward_map
 		= n.advertise<nav_msgs::OccupancyGrid>("/reward_map/vin", 1);
+
+	ros::Publisher pub_other_agents_state 
+		= n.advertise<std_msgs::Float32MultiArray>("/other_agents_state", 1);
 
 	ros::Publisher pub_curvature_debug 
 		= n.advertise<sensor_msgs::PointCloud>("/curvature/debug", 1);
@@ -566,46 +641,66 @@ int main(int argc,char** argv)
 
 
 	ExpandMap ex_map(Expand_radius, Resolution);
+	ExpandMap ex_map_static(Expand_radius, Resolution);
+	ExpandMap ex_map_real(Expand_radius, Resolution);
+
 
 	cout<<"Here we go!!"<<endl;
 
 
 	while (ros::ok()){
-		if(sub_lcl && sub_global_map && sub_local_goal){
+		if(sub_lcl && sub_global_map && sub_local_goal && sub_extract_human){
 			// clock_t start=clock();
 			vector<int> base_input_map_1d = reshape_1dim(static_input_map_2d);
 			set_grid_data(static_input_map, base_input_map_1d);
 			pub_map_static.publish(static_input_map);
+			ex_map_static.expandObstacle(static_input_map);
+			pub_map_static_expand.publish(ex_map_static.local_map);
+			vector< vector<int> > ex_map_static_2d;
+			ex_map_static_2d = reshape_2dim(ex_map_static.local_map.data, 
+											ex_map_static.local_map.info.height, 
+											ex_map_static.local_map.info.width);
 
-
-			sensor_msgs::PointCloud curv; //2016/1/24
-			{
-				boost::mutex::scoped_lock(mutex_static_);
-				curv = curvature_in;
-			}
-			sensor_msgs::PointCloud minmax;
-			{
-				boost::mutex::scoped_lock(mutex_minmax);
-				minmax = minmax_in;
-			}
 
 			init_map_2d(real_input_map_2d, extract_range);
-			sensor_msgs::PointCloud curvature_global, minmax_global;
-			cvt_pointcloud(tflistener, curv, curvature_global);
-			pub_curvature_debug.publish(curvature_global);
-			pc2grid(curvature_global, real_input_map_2d);
-			cvt_pointcloud(tflistener, minmax, minmax_global);
-			pub_minmax_debug.publish(minmax_global);
-			pc2grid(minmax_global, real_input_map_2d);
+			if(sub_curvature){
+				sensor_msgs::PointCloud curv; //2016/1/24
+				{
+					boost::mutex::scoped_lock(mutex_static_);
+					curv = curvature_in;
+				}
+				sensor_msgs::PointCloud curvature_global;
+				cvt_pointcloud(tflistener, curv, curvature_global);
+				pub_curvature_debug.publish(curvature_global);
+				pc2grid(curvature_global, real_input_map_2d);
+			}
+			if(sub_minmax){
+				sensor_msgs::PointCloud minmax;
+				{
+					boost::mutex::scoped_lock(mutex_minmax);
+					minmax = minmax_in;
+				}
+				sensor_msgs::PointCloud minmax_global;
+				cvt_pointcloud(tflistener, minmax, minmax_global);
+				pub_minmax_debug.publish(minmax_global);
+				pc2grid(minmax_global, real_input_map_2d);
+			}
 			vector<int> real_input_map_1d = reshape_1dim(real_input_map_2d);
 			set_grid_data(real_input_map, real_input_map_1d);
 			pub_map_real.publish(real_input_map);
+			ex_map_real.expandObstacle(real_input_map);
+			pub_map_real_expand.publish(ex_map_real.local_map);
+			vector< vector<int> > ex_map_real_2d;
+			ex_map_real_2d = reshape_2dim(ex_map_real.local_map.data, 
+										  ex_map_real.local_map.info.height, 
+										  ex_map_real.local_map.info.width);
+
 
 			concat_grid_map(static_input_map_2d, real_input_map_2d, input_map_2d);
+			// concat_grid_map(static_input_map_2d, ex_map_real_2d, input_map_2d);
 			vector<int> input_map_1d = reshape_1dim(input_map_2d);
 			set_grid_data(input_map, input_map_1d);
 			pub_map.publish(input_map);
-
 			ex_map.expandObstacle(input_map);
 			pub_map_expand.publish(ex_map.local_map);
 			vector< vector<int> > ex_map_2d;
@@ -619,6 +714,8 @@ int main(int argc,char** argv)
 			vector<int> reward_map_1d = reshape_1dim(reward_map_2d);
 			set_grid_data(reward_map, reward_map_1d);
 			pub_reward_map.publish(reward_map);
+
+			pub_other_agents_state.publish(other_agents_state);
 			
 			// cout<<"duration = "<<(double)(clock()-start)/CLOCKS_PER_SEC<<endl;
 		}

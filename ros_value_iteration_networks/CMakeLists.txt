@@ -156,6 +156,7 @@ include_directories(
 add_executable(create_input_grid_map src/create_input_grid_map.cpp)
 
 add_executable(convert_human2input_data src/convert_human2input_data.cpp)
+add_executable(convert_human2input_data_new src/convert_human2input_data_new.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -168,6 +169,9 @@ target_link_libraries(create_input_grid_map
 )
 
 target_link_libraries(convert_human2input_data
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(convert_human2input_data_new
   ${catkin_LIBRARIES}
 )
 
