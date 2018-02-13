@@ -63,12 +63,12 @@ vector< vector<int> > reward_map_2d;
 
 std_msgs::Float32MultiArray other_agents_state;
 
-bool sub_global_map = false;
-bool sub_lcl = false;
-bool sub_local_goal = false;
-bool sub_extract_human = false;
-bool sub_curvature = false;
-bool sub_minmax = false;
+bool sub_global_map_flag = false;
+bool sub_lcl_flag = false;
+bool sub_local_goal_flag = false;
+bool sub_extract_human_flag = false;
+bool sub_curvature_flag = false;
+bool sub_minmax_flag = false;
 
 
 enum cost{FREE=0, LETHAL=100};
@@ -377,7 +377,8 @@ void set_grid_data(nav_msgs::OccupancyGrid &map, vector<int> map_1d)
 
 void lclCallback(nav_msgs::Odometry msg)
 {
-	sub_lcl = true;
+	sub_lcl_flag = true;
+	// cout<<"============ lclMapCallback ============"<<endl;
 
 	lcl = msg;
 	extract_base_input_grid_map(static_input_map_2d, 
@@ -387,11 +388,14 @@ void lclCallback(nav_msgs::Odometry msg)
 	set_origin_grid_map(real_input_map, lcl);
 	set_origin_grid_map(input_map, lcl);
 	set_origin_grid_map(reward_map, lcl);
+
+	// cout<<"========= lclCallback end ========="<<endl;
 }
 
 void globalMapCallback(nav_msgs::OccupancyGrid msg)
 {
-	sub_global_map = true;
+	sub_global_map_flag = true;
+	// cout<<"============ globalMapCallback ============"<<endl;
 
 	global_map = msg;
 	cout<<"global_map.info.width : "<<global_map.info.width<<endl;
@@ -406,6 +410,8 @@ void globalMapCallback(nav_msgs::OccupancyGrid msg)
 	set_init_grid_map(real_input_map);
 	set_init_grid_map(input_map);
 	set_init_grid_map(reward_map);
+
+	// cout<<"========= globalMapCallback end ========="<<endl;
 }
 
 
@@ -444,7 +450,7 @@ void CurvatureCallback(sensor_msgs::PointCloud msg){
 	curvature_in = msg;
 	// cout<<"msg.header : "<<msg.header<<endl;
 	//cout<<"curv_callback"<<endl;
-	sub_curvature = true;
+	sub_curvature_flag = true;
 }
 
 boost::mutex mutex_minmax;
@@ -455,7 +461,7 @@ void MinMaxCallback(sensor_msgs::PointCloud2 msg){
 	pc2 = msg;
 	sensor_msgs::convertPointCloud2ToPointCloud(pc2, minmax_in);
 
-	sub_minmax = true;
+	sub_minmax_flag = true;
 }
 
 void concat_grid_map(vector< vector<int> > &static_2d, vector< vector<int> > &real_2d, 
@@ -548,14 +554,19 @@ void create_reward_map(geometry_msgs::PoseStamped &local_goal,
 
 void localGoalCallback(geometry_msgs::PoseStamped msg)
 {
-	sub_local_goal = true;
+	// cout<<"============ localGoalCallback ============"<<endl;
+
+	sub_local_goal_flag = true;
 	local_goal = msg;
+
+	// cout<<"============ localGoalCallback end ============"<<endl;
 }
 
 
 void extractHumanCallback(visualization_msgs::MarkerArray msg)
 {
-	sub_extract_human = true;
+	sub_extract_human_flag = true;
+	// cout<<"============ extractHumanCallback ============"<<endl;
 
 	other_agents_state.data.clear();
 
@@ -594,6 +605,7 @@ void extractHumanCallback(visualization_msgs::MarkerArray msg)
 		}
 	}
 
+	// cout<<"============ extractHumanCallback end ============"<<endl;
 }
 
 
@@ -649,8 +661,8 @@ int main(int argc,char** argv)
 
 
 	while (ros::ok()){
-		if(sub_lcl && sub_global_map && sub_local_goal && sub_extract_human){
-			clock_t start=clock();
+		if(sub_lcl_flag && sub_global_map_flag && sub_local_goal_flag && sub_extract_human_flag){
+			// clock_t start=clock();
 			vector<int> base_input_map_1d = reshape_1dim(static_input_map_2d);
 			set_grid_data(static_input_map, base_input_map_1d);
 			pub_map_static.publish(static_input_map);
@@ -663,7 +675,7 @@ int main(int argc,char** argv)
 
 
 			init_map_2d(real_input_map_2d, extract_range);
-			if(sub_curvature){
+			if(sub_curvature_flag){
 				sensor_msgs::PointCloud curv; //2016/1/24
 				{
 					boost::mutex::scoped_lock(mutex_static_);
@@ -674,7 +686,7 @@ int main(int argc,char** argv)
 				pub_curvature_debug.publish(curvature_global);
 				pc2grid(curvature_global, real_input_map_2d);
 			}
-			if(sub_minmax){
+			if(sub_minmax_flag){
 				sensor_msgs::PointCloud minmax;
 				{
 					boost::mutex::scoped_lock(mutex_minmax);
@@ -717,7 +729,7 @@ int main(int argc,char** argv)
 
 			pub_other_agents_state.publish(other_agents_state);
 			
-			cout<<"duration = "<<(double)(clock()-start)/CLOCKS_PER_SEC<<endl;
+			// cout<<"duration = "<<(double)(clock()-start)/CLOCKS_PER_SEC<<endl;
 		}
 		ros::spinOnce();
 		loop_rate.sleep();
