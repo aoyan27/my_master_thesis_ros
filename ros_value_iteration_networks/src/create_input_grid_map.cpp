@@ -18,6 +18,8 @@
 
 #include <time.h>
 
+#include <math.h>
+
 
 #define Width 10
 #define Height 10
@@ -502,8 +504,8 @@ void create_reward_map(geometry_msgs::PoseStamped &local_goal,
 	int diff_y = discreate_local_goal[1] - discreate_lcl[1];
 	// cout<<"diff_x : "<<diff_x<<endl;
 	// cout<<"diff_y : "<<diff_y<<endl;
-	int x_index = discreate_local_goal[0]-extract_range[0];
-	int y_index = discreate_local_goal[1]-extract_range[1];
+	int x_index = discreate_local_goal[0] - extract_range[0];
+	int y_index = discreate_local_goal[1] - extract_range[1];
 	// cout<<"x_index : "<<x_index<<endl;
 	// cout<<"y_index : "<<y_index<<endl;
 	// if(diff_x > 15){
@@ -530,20 +532,26 @@ void create_reward_map(geometry_msgs::PoseStamped &local_goal,
 			break;
 		}
 		else{
-			// cout<<"onstacle exist!!!"<<endl;
+			cout<<"onstacle exist!!!"<<endl;
+			// x_index = discreate_lcl[0] - extract_range[0];	
+			// y_index = discreate_lcl[1] - extract_range[1];
+			int x_segment = x_index;
+			int y_segment = y_index;
+			cout<<"diff_x : "<<diff_x<<endl;
+			cout<<"diff_y : "<<diff_y<<endl;
+			double slope = atan2(diff_y, diff_x);
+			cout<<"slope : "<<slope<<endl;
+			cout<<"x_index : "<<x_index<<endl;
+			cout<<"y_index : "<<y_index<<endl;
 			if(diff_x > 0){
-				x_index = discreate_lcl[0] - extract_range[0] + 1;	
+				x_index -= 1;
 			}
 			else{
-				x_index = discreate_lcl[0] - extract_range[0] - 1;	
+				x_index += 1;
 			}
-
-			if(diff_y > 0){
-				y_index = discreate_lcl[1] - extract_range[1] + 1;
-			}
-			else{
-				y_index = discreate_lcl[1] - extract_range[1] - 1;
-			}
+			cout<<"x_index : "<<x_index<<endl;
+			y_index = slope * (x_index - x_segment) + y_segment;
+			cout<<"y_index : "<<y_index<<endl;
 		}
 	}
 

@@ -27,7 +27,6 @@ using namespace std;
 
 #define collision_threshold 0.15
 
-
 double MAX_VEL;
 double MIN_VEL;
 double MAX_ROT_VEL;
@@ -42,6 +41,9 @@ double COST_OBS;
 double COST_VEL;
 double COST_HEAD;
 double COST_INV_TARGET;
+
+ros::Duration target_lifetime = ros::Duration();
+ros::Duration path_lifetime = ros::Duration(0.05);
 
 
 visualization_msgs::MarkerArray path_candidate;
@@ -149,9 +151,7 @@ void set_vis_traj(vector<geometry_msgs::PoseStamped> traj,
 	marker.color.b = 52.0 / 255.0;
 	marker.color.a = 1.0;
 
-	marker.lifetime = ros::Duration();
-	// marker.lifetime = ros::Duration(0.1);
-	// marker.lifetime = ros::Duration(0.025);
+	marker.lifetime = path_lifetime;
 	
 	for(size_t i=0; i<traj_size; i++){
 		marker.points.push_back(traj[i].pose.position);
@@ -554,9 +554,7 @@ void set_target_marker(vector<geometry_msgs::Point> target, visualization_msgs::
 	marker.color.b = 0.7;
 	marker.color.a = 1.0;
 
-	marker.lifetime = ros::Duration();
-	// marker.lifetime = ros::Duration(0.1);
-	// marker.lifetime = ros::Duration(0.05);
+	marker.lifetime = target_lifetime;
 
 	size_t target_size = target.size();
 	for(size_t i=0; i<target_size; i++){
@@ -614,19 +612,37 @@ void vinNextTargetCallback(std_msgs::Float32MultiArray msg)
 	target_path.clear();
 	int rows = msg.data.size();
 	// cout<<"rows : "<<rows<<endl;
+	int num_target_path = rows / 2;
+	cout<<"num_target_path : "<<num_target_path<<endl;
 	vector< vector<float> > continuous_state_list;
-	continuous_state_list = reshape_2dim_float(msg.data, rows/2, 2);
-	for(size_t i=0; i<continuous_state_list.size(); i++){
-		cout<<"continuous_state_list["<<i<<"] : "
-			<<continuous_state_list[i][1]<<", "<<continuous_state_list[i][0]<<endl;
+	continuous_state_list = reshape_2dim_float(msg.data, num_target_path, 2);
+	if(0 < num_target_path && num_target_path <= 2){
+		float diff_x = continuous_state_list[continuous_state_list.size()-1][1] 
+					 - continuous_state_list[0][1];
+		float diff_y = continuous_state_list[continuous_state_list.size()-1][0] 
+					 - continuous_state_list[0][0];
+		// cout<<"diff_x : "<<diff_x<<endl;
+		// cout<<"diff_y : "<<diff_y<<endl;
+		for(int i=0; i<6; i++){
+			float x = continuous_state_list[continuous_state_list.size()-1][1] + diff_x;
+			float y = continuous_state_list[continuous_state_list.size()-1][0] + diff_y;
+			vector<float> continuous_state{y, x};
+			continuous_state_list.push_back(continuous_state);
+		}
+	}
+	size_t continuous_state_list_size = continuous_state_list.size();
+	cout<<"continuous_state_list_size : "<<continuous_state_list_size<<endl;
+	for(size_t i=0; i<continuous_state_list_size; i++){
+		// cout<<"continuous_state_list["<<i<<"] : "
+			// <<continuous_state_list[i][1]<<", "<<continuous_state_list[i][0]<<endl;
 		double x = continuous_state_list[i][1];
 		double y = continuous_state_list[i][0];
-		cout<<"x : "<<x<<endl;
-		cout<<"y : "<<y<<endl;
+		// cout<<"x : "<<x<<endl;
+		// cout<<"y : "<<y<<endl;
 		geometry_msgs::Point target_point;
 		target_point.x = x;
 		target_point.y = y;
-		target_point.z = 0.0;
+		target_point.z = 0.1;
 		target_path.push_back(target_point);
 	}
 	for(size_t i=0; i<target_path.size(); i++){
@@ -635,7 +651,7 @@ void vinNextTargetCallback(std_msgs::Float32MultiArray msg)
 	
 	next_target.x = target_path[target_path.size()-1].x;
 	next_target.y = target_path[target_path.size()-1].y;
-	next_target.z = 0.0;
+	next_target.z = 0.08;
 	// cout<<"next_target : "<<next_target<<endl;
 
 	visualization_msgs::Marker vis_target;
