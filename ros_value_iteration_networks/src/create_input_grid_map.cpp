@@ -650,7 +650,7 @@ int main(int argc,char** argv)
 
 	while (ros::ok()){
 		if(sub_lcl && sub_global_map && sub_local_goal && sub_extract_human){
-			// clock_t start=clock();
+			clock_t start=clock();
 			vector<int> base_input_map_1d = reshape_1dim(static_input_map_2d);
 			set_grid_data(static_input_map, base_input_map_1d);
 			pub_map_static.publish(static_input_map);
@@ -717,7 +717,7 @@ int main(int argc,char** argv)
 
 			pub_other_agents_state.publish(other_agents_state);
 			
-			// cout<<"duration = "<<(double)(clock()-start)/CLOCKS_PER_SEC<<endl;
+			cout<<"duration = "<<(double)(clock()-start)/CLOCKS_PER_SEC<<endl;
 		}
 		ros::spinOnce();
 		loop_rate.sleep();
