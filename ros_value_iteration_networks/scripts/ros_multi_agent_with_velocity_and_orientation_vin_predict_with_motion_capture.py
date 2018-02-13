@@ -422,7 +422,7 @@ class ValueIterationNetworkAgent:
 def main(model_path, gpu):
     rospy.init_node("ros_multi_agent_vin_predict")
 
-    local_goal = (5.0, 0.0)
+    local_goal = (4.0, 0.0)
     idg = InputDataGenerator(local_goal)
 
     next_target_pub = rospy.Publisher("/vin/target_path", Int32MultiArray, queue_size=1)
@@ -451,6 +451,7 @@ def main(model_path, gpu):
             #  print idg.input_data
             idg.generate_my_agent_data()
             idg.generate_other_agent_data()
+
             
             #  action = agent.get_action(idg.input_data, \
                                       #  idg.position_data, idg.velocity_data, \
@@ -471,8 +472,8 @@ def main(model_path, gpu):
                                    idg.position_data, idg.velocity_data, idg.orientation_data,\
                                    idg.other_position_data, idg.other_velocity_data, \
                                    idg.other_orientation_data, idg.discreate_local_goal)
-            print "agent.traj_state_list : ", agent.traj_state_list
-            agent.view_path(idg.input_data ,agent.traj_state_list, found)
+            #  print "agent.traj_state_list : ", agent.traj_state_list
+            #  agent.view_path(idg.input_data ,agent.traj_state_list, found)
 
             ros_next_state.data = np.asarray(agent.traj_state_list).reshape(-1)
             next_target_pub.publish(ros_next_state)
