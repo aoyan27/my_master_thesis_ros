@@ -179,6 +179,7 @@ void CvtHuman2Input::extract_input_humans(vector<int> human_id_list,
 
 void CvtHuman2Input::humanVelocityCallback(visualization_msgs::MarkerArray msg)
 {
+	clock_t start = clock();
 	cout<<"===================================="<<endl;
 	extract_human.markers.clear();
 
@@ -190,7 +191,6 @@ void CvtHuman2Input::humanVelocityCallback(visualization_msgs::MarkerArray msg)
 		vector<geometry_msgs::PoseStamped> human_pose_list;
 		vector<double> dist_list;
 		
-		clock_t start = clock();
 		for(size_t i=0; i<num_human; i++){
 			// cout<<"human_id : "<<msg.markers[i].id<<endl;
 			human_id_list.push_back(msg.markers[i].id);
@@ -229,13 +229,15 @@ void CvtHuman2Input::humanVelocityCallback(visualization_msgs::MarkerArray msg)
 			extract_input_humans(human_id_list, human_velocity_list, human_pose_list, 
 								 dist_list, num_human_in_range);
 		}
-		clock_t end = clock();
-		cout << "duration = " << (double)(end - start) / CLOCKS_PER_SEC << "sec.\n";
 	}
 	else{
 		printf("No human!!\n");
-		extract_human_pub_.publish(extract_human);
+		// extract_human_pub_.publish(extract_human);
 	}
+
+	clock_t end = clock();
+	cout << "duration = " << (double)(end - start) / CLOCKS_PER_SEC << "sec.\n";
+	extract_human_pub_.publish(extract_human);
 }
 
 
