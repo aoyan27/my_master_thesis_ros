@@ -422,7 +422,7 @@ int main(int argc, char** argv)
 				printf("Wait for \"/map\" topic!!\n");
 			}
 			if(!sub_other_agents){
-				printf("Wait for \"/ather_agents_velocity\" topic!!\n");
+				printf("Wait for \"/other_agents_velocity\" topic!!\n");
 			}
 		}
 		

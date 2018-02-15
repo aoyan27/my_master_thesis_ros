@@ -185,8 +185,8 @@ class InputDataGenerator:
         x = continuous_x + self.input_image_size[0]*self.resize_resolution/2
         y = continuous_y + self.input_image_size[1]*self.resize_resolution/2
 
-        grid_x = int(x / self.resize_resolution)
-        grid_y = int(y / self.resize_resolution)
+        grid_x = int(round(x / self.resize_resolution))
+        grid_y = int(round(y / self.resize_resolution))
 
         if grid_x < 0:
             grid_x = 0
@@ -196,6 +196,7 @@ class InputDataGenerator:
             grid_y = 0
         if grid_y >= self.input_image_size[1]:
             grid_y = self.input_image_size[1]-1
+        #  print "[grid_y, grid_x] : [", grid_y, grid_x, "]"
 
         return grid_y, grid_x
 

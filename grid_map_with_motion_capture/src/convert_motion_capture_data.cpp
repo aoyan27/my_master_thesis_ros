@@ -146,12 +146,9 @@ void CvtMocapData::set_pointcloud(visualization_msgs::Marker marker)
 	tmp_point.curvature = marker.id;
 
 	if(marker.id == 0){
-		my_agent_tracking_pc->points.clear();
 		my_agent_tracking_pc->points.push_back(tmp_point);
-		// cout<<my_agent_tracking_pc->points.size()<<endl;
 	}
 	else{
-		other_agents_tracking_pc->points.clear();
 		other_agents_tracking_pc->points.push_back(tmp_point);
 	}
 }
@@ -159,10 +156,15 @@ void CvtMocapData::set_pointcloud(visualization_msgs::Marker marker)
 
 void CvtMocapData::mocapVelocityCallback(visualization_msgs::MarkerArray msg)
 {
+	clock_t start = clock();
+
 	other_agents_.markers.clear();
 	size_t num_agents = msg.markers.size();
 	cout<<"num_agents : "<<num_agents<<endl;
-	clock_t start = clock();
+
+	my_agent_tracking_pc->points.clear();
+	other_agents_tracking_pc->points.clear();
+
 	for(size_t i=0;i<num_agents;i++){
 		// cout<<"========================="<<endl;
 		geometry_msgs::PoseStamped tmp_mocap;
@@ -206,8 +208,6 @@ void CvtMocapData::mocapVelocityCallback(visualization_msgs::MarkerArray msg)
 	pcl::toROSMsg(*other_agents_tracking_pc, other_agents_tracking_pc2);
 	other_agents_tracking_pc2.header = header;
 	other_agents_tracking_pub_.publish(other_agents_tracking_pc2);
-
-
 
 	clock_t end = clock();
 	cout << "duration = " << (double)(end - start) / CLOCKS_PER_SEC << "sec.\n";

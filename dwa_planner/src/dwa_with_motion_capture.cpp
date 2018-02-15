@@ -751,6 +751,17 @@ int main(int argc, char** argv)
 			// sub_lcl = false;
 			// sub_next_target = false;
 		}
+		else{
+			if(!sub_local_map){
+				printf("No subscribe local_map!!\n");
+			}
+			if(!sub_lcl){
+				printf("No subscribe lcl!!\n");
+			}
+			if(!sub_next_target){
+				printf("No subscribe next_target!!\n");
+			}
+		}
 
 		loop_rate.sleep();
 		ros::spinOnce();
