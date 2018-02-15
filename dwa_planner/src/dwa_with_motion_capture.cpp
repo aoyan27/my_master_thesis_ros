@@ -702,8 +702,8 @@ int main(int argc, char** argv)
 	print_param();
 
 
-	// ros::Subscriber local_map_sub = n.subscribe("/input_grid_map", 1, localMapCallback);
-	ros::Subscriber local_map_sub = n.subscribe("/input_grid_map/expand", 1, localMapCallback);
+	ros::Subscriber local_map_sub = n.subscribe("/input_grid_map", 1, localMapCallback);
+	// ros::Subscriber local_map_sub = n.subscribe("/input_grid_map/expand", 1, localMapCallback);
 	ros::Subscriber lcl_sub = n.subscribe("/my_agent_velocity", 1, lclCallback);
 	ros::Subscriber tiny_sub = n.subscribe("/tinypower/odom", 1, tinyCallback);
 	ros::Subscriber vin_next_targe_sub = n.subscribe("/vin/target_path", 1, vinNextTargetCallback);
