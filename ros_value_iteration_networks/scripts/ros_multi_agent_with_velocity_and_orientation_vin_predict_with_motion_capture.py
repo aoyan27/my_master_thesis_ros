@@ -222,6 +222,7 @@ class InputDataGenerator:
         self.input_data = np.expand_dims(input_data_, 0)
 
     def generate_my_agent_data(self):
+        print "+++++++++++++++++++++++++++++++++++++"
         self.position_data \
                 = self.continuous2discreate(self.my_agent.pose.position.x, \
                                             self.my_agent.pose.position.y)
@@ -234,6 +235,7 @@ class InputDataGenerator:
         print "orientation : ", self.orientation_data
         self.velocity_data = np.expand_dims(self.velocity_data, 0)
         print "velocity : ", self.velocity_data
+        print "+++++++++++++++++++++++++++++++++++++"
         
     def get_orientation_and_velocity(self, human_orientation):
         q = (human_orientation.x, human_orientation.y, human_orientation.z, human_orientation.w)
@@ -252,6 +254,7 @@ class InputDataGenerator:
     def generate_other_agent_data(self):
         if self.human_sub_flag:
             if len(self.human.markers) > 0:
+                print "----------------------------------------"
                 for i in xrange(self.num_human):
                     self.other_position_data[i] \
                             = self.continuous2discreate(self.human.markers[i].pose.position.x, \
@@ -264,10 +267,14 @@ class InputDataGenerator:
                 self.other_orientation_data = np.asarray(self.other_orientation_data)
                 self.other_velocity_data = np.asarray(self.other_velocity_data)
 
-                print "self.other_position_data : ", self.other_position_data
-                print "self.other_orientation_data : ", self.other_orientation_data
-                print "self.other_velocity_data : ", self.other_velocity_data
+                print "self.other_position_data : "
+                print self.other_position_data
+                print "self.other_orientation_data : "
+                print self.other_orientation_data
+                print "self.other_velocity_data : "
+                print self.other_velocity_data
                 self.human_sub_flag = False
+                print "----------------------------------------"
 
 
 
@@ -451,29 +458,14 @@ def main(model_path, gpu):
             #  print idg.input_data
             idg.generate_my_agent_data()
             idg.generate_other_agent_data()
-
             
-            #  action = agent.get_action(idg.input_data, \
-                                      #  idg.position_data, idg.velocity_data, \
-                                      #  idg.orientation_data,\
-                                      #  idg.other_position_data, idg.other_velocity_data, \
-                                      #  idg.other_orientation_data)
-            #  print "action : ", action, "(", agent.dirs[int(action)], ")"
-            #  next_state, out_of_range, collision \
-                    #  = agent.move(state_data[0], action, input_data[0][0])
-            #  print "next_state : ", next_state
-            #  print "out_of_range : ", out_of_range
-            #  print "collision : ", collision
-            #  ros_next_state.data = next_state
-            #  print "ros_next_state : ", ros_next_state
-            #  next_target_pub.publish(ros_next_state)
             
             found = agent.get_path(idg.input_data, \
                                    idg.position_data, idg.velocity_data, idg.orientation_data,\
                                    idg.other_position_data, idg.other_velocity_data, \
                                    idg.other_orientation_data, idg.discreate_local_goal)
-            #  print "agent.traj_state_list : ", agent.traj_state_list
-            #  agent.view_path(idg.input_data ,agent.traj_state_list, found)
+            print "agent.traj_state_list : ", agent.traj_state_list
+            agent.view_path(idg.input_data ,agent.traj_state_list, found)
 
             ros_next_state.data = np.asarray(agent.traj_state_list).reshape(-1)
             next_target_pub.publish(ros_next_state)
