@@ -442,7 +442,7 @@ class ValueIterationNetworkAgent:
 def main(model_path, gpu):
     rospy.init_node("ros_multi_agent_vin_predict")
 
-    local_goal = (4.0, 0.0)
+    local_goal = (4.5, 0.0)
     idg = InputDataGenerator(local_goal)
 
     next_target_pub = rospy.Publisher("/vin/target_path", Int32MultiArray, queue_size=1)
