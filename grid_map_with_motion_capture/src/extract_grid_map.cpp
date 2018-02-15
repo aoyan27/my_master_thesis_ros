@@ -210,9 +210,19 @@ vector<int> reshape_1dim(vector< vector<int> > input_array)
 	return output_array;
 }
 
+int round_int(double x) {
+	if( x > 0.0){
+		return int(x + 0.5);
+	} 
+	else{
+		return -1.0 * int(fabs(x) + 0.5);
+	}
+}
+
 vector<int> continuous2discreate(double x, double y, nav_msgs::OccupancyGrid map, bool origin)
 {
-	int p, q;
+	// int p, q;
+	double p, q;
 	if(origin){
 		double resolution = map.info.resolution;
 		double origin_x = -1.0 * map.info.origin.position.x;
@@ -244,8 +254,10 @@ vector<int> continuous2discreate(double x, double y, nav_msgs::OccupancyGrid map
 
 	vector<int> output;
 	output.resize(2);
-	output[0] = p;
-	output[1] = q;
+	// output[0] = p;
+	// output[1] = q;
+	output[0] = round_int(p);
+	output[1] = round_int(q);
 	
 	return output;
 }
@@ -323,15 +335,28 @@ void extract_base_input_grid_map(vector< vector<int> > &base_grid_map)
 
 void set_grid_map_with_other_agent(vector< vector<int> > &grid_map, vector<int> agent_position)
 {
+	// grid_map[agent_position[1]][agent_position[0]] = 100;
+	// grid_map[agent_position[1]+1][agent_position[0]] = 100;
+	// grid_map[agent_position[1]][agent_position[0]+1] = 100;
+	// grid_map[agent_position[1]][agent_position[0]-1] = 100;
+	// grid_map[agent_position[1]-1][agent_position[0]] = 100;
+	// grid_map[agent_position[1]+1][agent_position[0]+1] = 100;
+	// grid_map[agent_position[1]-1][agent_position[0]+1] = 100;
+	// // grid_map[agent_position[1]+1][agent_position[0]-1] = 100;
+	// // grid_map[agent_position[1]-1][agent_position[0]-1] = 100;
+	
 	grid_map[agent_position[1]][agent_position[0]] = 100;
-	grid_map[agent_position[1]+1][agent_position[0]] = 100;
-	grid_map[agent_position[1]][agent_position[0]+1] = 100;
+	// grid_map[agent_position[1]+1][agent_position[0]] = 100;
+	// grid_map[agent_position[1]][agent_position[0]+1] = 100;
 	grid_map[agent_position[1]][agent_position[0]-1] = 100;
 	grid_map[agent_position[1]-1][agent_position[0]] = 100;
-	grid_map[agent_position[1]+1][agent_position[0]+1] = 100;
+	grid_map[agent_position[1]-2][agent_position[0]] = 100;
+	// grid_map[agent_position[1]+1][agent_position[0]+1] = 100;
 	grid_map[agent_position[1]-1][agent_position[0]+1] = 100;
 	// grid_map[agent_position[1]+1][agent_position[0]-1] = 100;
-	// grid_map[agent_position[1]-1][agent_position[0]-1] = 100;
+	grid_map[agent_position[1]-1][agent_position[0]-1] = 100;
+	grid_map[agent_position[1]-1][agent_position[0]-2] = 100;
+	grid_map[agent_position[1]-2][agent_position[0]-1] = 100;
 }
 
 void globalMapCallback(nav_msgs::OccupancyGrid msg)
