@@ -24,7 +24,8 @@ import sys
 import math
 
 #  from networks.multi_agent_vin_with_velocity_and_orientation import ValueIterationNetwork
-from networks.multi_agent_vin_symmetrical_net2 import ValueIterationNetwork
+from networks.multi_agent_vin_with_velocity_and_orientation_three \
+        import ValueIterationNetwork
 
 import rospy
 import tf
@@ -497,7 +498,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='This script is ros_vin_predict ...')
     parser.add_argument('-g', '--gpu', default=-1, type=int, help='number of gpu device')
     parser.add_argument('-m', '--model_path', \
-        default='/home/amsl/ros_catkin_ws/src/master_thesis/ros_value_iteration_networks/models/multi_agent_object_world_vin_model_50_epoch_5000_domain_9_action_20x20_50_to_0_n_objects_3_agents_with_velocity_and_orientation_future_seed_0_symmetrical_net2/multi_agent_vin_model_50.model', \
+        default='/home/amsl/ros_catkin_ws/src/master_thesis/ros_value_iteration_networks/models/multi_agent_object_world_vin_model_50_epoch_5000_domain_9_action_20x20_50_to_0_n_objects_3_agents_with_velocity_and_orientation_future_seed_0_relu_adam/multi_agent_vin_model_50.model', \
         type=str, help="load model path")
 
     args = parser.parse_args()
