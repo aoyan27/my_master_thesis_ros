@@ -159,6 +159,7 @@ include_directories(
 add_executable(dwa src/dwa.cpp)
 add_executable(dwa_new src/dwa_new.cpp)
 add_executable(dwa_with_motion_capture src/dwa_with_motion_capture.cpp)
+add_executable(dwa_with_motion_capture_old src/dwa_with_motion_capture_old.cpp)
 
 add_executable(dwa_only src/dwa_only.cpp)
 
@@ -174,6 +175,9 @@ target_link_libraries(dwa_new
   ${catkin_LIBRARIES}
 )
 target_link_libraries(dwa_with_motion_capture
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(dwa_with_motion_capture_old
   ${catkin_LIBRARIES}
 )
 
