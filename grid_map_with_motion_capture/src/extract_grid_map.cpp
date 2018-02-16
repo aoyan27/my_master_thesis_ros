@@ -346,14 +346,16 @@ void set_grid_map_with_other_agent(vector< vector<int> > &grid_map, vector<int> 
 	// // grid_map[agent_position[1]-1][agent_position[0]-1] = 100;
 	
 	grid_map[agent_position[1]][agent_position[0]] = 100;
-	// grid_map[agent_position[1]+1][agent_position[0]] = 100;
+	grid_map[agent_position[1]+1][agent_position[0]] = 100;
 	// grid_map[agent_position[1]][agent_position[0]+1] = 100;
 	grid_map[agent_position[1]][agent_position[0]-1] = 100;
 	grid_map[agent_position[1]-1][agent_position[0]] = 100;
 	grid_map[agent_position[1]-2][agent_position[0]] = 100;
+	grid_map[agent_position[1]-3][agent_position[0]] = 100;
+	grid_map[agent_position[1]-3][agent_position[0]-1] = 100;
 	// grid_map[agent_position[1]+1][agent_position[0]+1] = 100;
 	grid_map[agent_position[1]-1][agent_position[0]+1] = 100;
-	// grid_map[agent_position[1]+1][agent_position[0]-1] = 100;
+	grid_map[agent_position[1]+1][agent_position[0]-1] = 100;
 	grid_map[agent_position[1]-1][agent_position[0]-1] = 100;
 	grid_map[agent_position[1]-1][agent_position[0]-2] = 100;
 	grid_map[agent_position[1]-2][agent_position[0]-1] = 100;
