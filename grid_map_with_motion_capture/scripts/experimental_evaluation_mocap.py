@@ -11,6 +11,7 @@ import numpy as np
 
 import math
 import sys
+import time
 
 class MocapExperiment:
     def __init__(self):
@@ -45,11 +46,17 @@ class MocapExperiment:
         self.other_traj_sub_flag = False
 
         self.start_flag = False
+        self.first_flag = True
+
+        self.start_time = None
 
     def tinyCallback(self, msg):
         print "tiny_vel : ", msg.twist.twist.linear.x
         if msg.twist.twist.linear.x != 0.0:
             self.start_flag = True
+            if self.first_flag:
+                self.start_time = time.time()
+                self.first_flag = False
         else:
             self.start_flag = False
 
@@ -99,10 +106,13 @@ class MocapExperiment:
                 print "Finish !!"
                 if len(self.clearance_list) != 0:
                     print "self.clearance_list : ", self.clearance_list
-                    print "min_clearance : ", min(self.clearance_list)
+                    print "min_clearance : ", min(self.clearance_list) - 0.434
 
                     print "self.velocity_list : ", self.velocity_list
                     print "average_velocity : ", sum(self.velocity_list) / len(self.velocity_list)
+
+                    goal_time = time.time() - self.start_time
+                    print ("Goal Time:{0}".format(goal_time) + "[sec]")
 
                     sys.exit(1)
                 
