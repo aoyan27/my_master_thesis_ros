@@ -26,6 +26,9 @@ class MocapExperiment:
         self.my_traj_pub = rospy.Publisher("/my_traj/dwa", Marker, queue_size=1)
         self.other_traj_pub = rospy.Publisher("/other_traj/dwa", Marker, queue_size=1)
 
+        self.my_sphere_pub = rospy.Publisher("/my_sphere", Marker, queue_size=1)
+        self.other_sphere_pub = rospy.Publisher("/other_sphere", Marker, queue_size=1)
+
         self.color_list = [ColorRGBA(r=1.0, g=0.0, b=0.0, a=1.0), \
                            ColorRGBA(r=0.0, g=0.0, b=1.0, a=1.0)]
 
@@ -38,6 +41,11 @@ class MocapExperiment:
         self.set_init_traj_parameter(self.my_traj, 0)
         self.other_traj = Marker()
         self.set_init_traj_parameter(self.other_traj, 1)
+
+        self.my_sphere = Marker()
+        self.set_init_sphere_parameter(self.my_sphere, 0)
+        self.other_sphere = Marker()
+        self.set_init_sphere_parameter(self.other_sphere, 1)
 
         self.clearance_list = []
         self.velocity_list = []
@@ -71,6 +79,19 @@ class MocapExperiment:
         self.sub_other_velocity = msg
         self.sub_other_velocity_flag = True
 
+    def set_init_sphere_parameter(self, sphere, id):
+        sphere.ns = "sphere_%d " % id
+        sphere.color = self.color_list[id]
+        sphere.type = Marker.SPHERE
+        sphere.action = Marker.ADD
+        sphere.scale.x = 0.434 * 2.0
+        sphere.scale.y = 0.434 * 2.0
+        sphere.scale.z = 0.434 * 2.0
+        #  sphere.scale.x = 0.434
+        #  sphere.scale.y = 0.434
+        #  sphere.scale.z = 0.434
+        sphere.lifetime = rospy.Duration()
+
     def set_init_traj_parameter(self, traj, id):
         traj.ns = "traj_%d " % id
         traj.color = self.color_list[id]
@@ -94,6 +115,12 @@ class MocapExperiment:
                 self.my_traj.points.append(self.sub_my_velocity.pose.position)
                 self.other_traj.points.append(self.sub_other_velocity.markers[0].pose.position)
 
+                self.my_sphere.header = header
+                self.other_sphere.header = header
+
+                self.my_sphere.pose.position = self.sub_my_velocity.pose.position
+                self.other_sphere.pose.position = self.sub_other_velocity.markers[0].pose.position
+
                 self.velocity_list.append(self.sub_my_velocity.scale.x)
 
                 self.clearance_list.append(self.calc_dist(self.my_traj.points[-1], \
@@ -102,13 +129,16 @@ class MocapExperiment:
                 print "appended trajectory!!"
                 self.my_traj_pub.publish(self.my_traj)
                 self.other_traj_pub.publish(self.other_traj)
+
+                self.my_sphere_pub.publish(self.my_sphere)
+                self.other_sphere_pub.publish(self.other_sphere)
             else:
                 print "Finish !!"
                 if len(self.clearance_list) != 0:
-                    print "self.clearance_list : ", self.clearance_list
+                    #  print "self.clearance_list : ", self.clearance_list
                     print "min_clearance : ", min(self.clearance_list) - 0.434
 
-                    print "self.velocity_list : ", self.velocity_list
+                    #  print "self.velocity_list : ", self.velocity_list
                     print "average_velocity : ", sum(self.velocity_list) / len(self.velocity_list)
 
                     goal_time = time.time() - self.start_time
