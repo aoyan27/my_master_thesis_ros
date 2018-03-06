@@ -21,7 +21,7 @@ using namespace std;
 #define Height 10
 #define Resolution 0.25
 
-#define Expand_radius 0.15
+#define Expand_radius 0.55
 
 string PARENT_FRAME;
 string CHILD_FRAME;
