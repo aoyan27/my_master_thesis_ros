@@ -21,15 +21,19 @@ class MocapExperiment:
                 = rospy.Subscriber("/other_agents_velocity", MarkerArray, self.otherTrajCallback)
         self.tiny_sub = rospy.Subscriber("/tinypower/odom", Odometry, self.tinyCallback)
 
-        #  self.my_traj_pub = rospy.Publisher("/my_traj", Marker, queue_size=1)
-        #  self.other_traj_pub = rospy.Publisher("/other_traj", Marker, queue_size=1)
-        self.my_traj_pub = rospy.Publisher("/my_traj/dwa", Marker, queue_size=1)
-        self.other_traj_pub = rospy.Publisher("/other_traj/dwa", Marker, queue_size=1)
+        self.my_traj_pub = rospy.Publisher("/my_traj", Marker, queue_size=1)
+        self.other_traj_pub = rospy.Publisher("/other_traj", Marker, queue_size=1)
+        self.other_traj2_pub = rospy.Publisher("/other_traj2", Marker, queue_size=1)
+        #  self.my_traj_pub = rospy.Publisher("/my_traj/dwa", Marker, queue_size=1)
+        #  self.other_traj_pub = rospy.Publisher("/other_traj/dwa", Marker, queue_size=1)
+        #  self.other_traj2_pub = rospy.Publisher("/other_traj2/dwa", Marker, queue_size=1)
 
         self.my_sphere_pub = rospy.Publisher("/my_sphere", Marker, queue_size=1)
         self.other_sphere_pub = rospy.Publisher("/other_sphere", Marker, queue_size=1)
+        self.other_sphere2_pub = rospy.Publisher("/other_sphere2", Marker, queue_size=1)
 
         self.color_list = [ColorRGBA(r=1.0, g=0.0, b=0.0, a=1.0), \
+                           ColorRGBA(r=0.0, g=0.0, b=1.0, a=1.0), \
                            ColorRGBA(r=0.0, g=0.0, b=1.0, a=1.0)]
 
         self.sub_my_velocity = Marker()
@@ -41,13 +45,18 @@ class MocapExperiment:
         self.set_init_traj_parameter(self.my_traj, 0)
         self.other_traj = Marker()
         self.set_init_traj_parameter(self.other_traj, 1)
+        self.other_traj2 = Marker()
+        self.set_init_traj_parameter(self.other_traj2, 2)
 
         self.my_sphere = Marker()
         self.set_init_sphere_parameter(self.my_sphere, 0)
         self.other_sphere = Marker()
         self.set_init_sphere_parameter(self.other_sphere, 1)
+        self.other_sphere2 = Marker()
+        self.set_init_sphere_parameter(self.other_sphere2, 2)
 
         self.clearance_list = []
+        self.clearance_list2 = []
         self.velocity_list = []
         
         self.my_traj_sub_flag = False
@@ -58,15 +67,17 @@ class MocapExperiment:
 
         self.start_time = None
 
+        self.goal = (3.0, 0.0)
+
     def tinyCallback(self, msg):
         print "tiny_vel : ", msg.twist.twist.linear.x
-        if msg.twist.twist.linear.x != 0.0:
-            self.start_flag = True
-            if self.first_flag:
-                self.start_time = time.time()
-                self.first_flag = False
-        else:
-            self.start_flag = False
+        #  if msg.twist.twist.linear.x != 0.0:
+            #  self.start_flag = True
+            #  if self.first_flag:
+                #  self.start_time = time.time()
+                #  self.first_flag = False
+        #  else:
+            #  self.start_flag = False
 
     def myTrajCallback(self, msg):
         #  print "==== my agent ===="
@@ -74,11 +85,16 @@ class MocapExperiment:
         print "self.sub_my_velocity : ", self.sub_my_velocity.scale.x
         self.sub_my_velocity_flag = True
 
-    def otherTrajCallback(self, msg):
-        #  print "===== other agents ====="
-        self.sub_other_velocity = msg
-        self.sub_other_velocity_flag = True
+        if self.sub_my_velocity.scale.x >= 0.08:
+            self.start_flag = True
+            if self.first_flag:
+                self.start_time = time.time()
+                self.first_flag = False
 
+        if math.fabs(self.sub_my_velocity.pose.position.x - self.goal[0]) <= 0.05 \
+                and math.fabs(self.sub_my_velocity.pose.position.y - self.goal[1]) <= 0.20: 
+            self.start_flag = False
+        
     def set_init_sphere_parameter(self, sphere, id):
         sphere.ns = "sphere_%d " % id
         sphere.color = self.color_list[id]
@@ -92,12 +108,18 @@ class MocapExperiment:
         #  sphere.scale.z = 0.434
         sphere.lifetime = rospy.Duration()
 
+
+    def otherTrajCallback(self, msg):
+        #  print "===== other agents ====="
+        self.sub_other_velocity = msg
+        self.sub_other_velocity_flag = True
+
     def set_init_traj_parameter(self, traj, id):
         traj.ns = "traj_%d " % id
         traj.color = self.color_list[id]
         traj.type = Marker.LINE_STRIP
         traj.action = Marker.ADD
-        traj.scale.x = 0.05
+        traj.scale.x = 0.08
         traj.lifetime = rospy.Duration()
 
     def calc_dist(self, a, b):
@@ -111,32 +133,46 @@ class MocapExperiment:
 
                 self.my_traj.header = header
                 self.other_traj.header = header
+                self.other_traj2.header = header
 
                 self.my_traj.points.append(self.sub_my_velocity.pose.position)
                 self.other_traj.points.append(self.sub_other_velocity.markers[0].pose.position)
+                self.other_traj2.points.append(self.sub_other_velocity.markers[1].pose.position)
+
 
                 self.my_sphere.header = header
                 self.other_sphere.header = header
+                self.other_sphere2.header = header
+
 
                 self.my_sphere.pose.position = self.sub_my_velocity.pose.position
                 self.other_sphere.pose.position = self.sub_other_velocity.markers[0].pose.position
+                self.other_sphere2.pose.position = self.sub_other_velocity.markers[1].pose.position
 
                 self.velocity_list.append(self.sub_my_velocity.scale.x)
 
                 self.clearance_list.append(self.calc_dist(self.my_traj.points[-1], \
                                                           self.other_traj.points[-1]))
+                self.clearance_list2.append(self.calc_dist(self.my_traj.points[-1], \
+                                                           self.other_traj2.points[-1]))
 
                 print "appended trajectory!!"
                 self.my_traj_pub.publish(self.my_traj)
                 self.other_traj_pub.publish(self.other_traj)
-
+                self.other_traj2_pub.publish(self.other_traj2)
+                
                 self.my_sphere_pub.publish(self.my_sphere)
                 self.other_sphere_pub.publish(self.other_sphere)
+                self.other_sphere2_pub.publish(self.other_sphere2)
+
             else:
                 print "Finish !!"
                 if len(self.clearance_list) != 0:
                     #  print "self.clearance_list : ", self.clearance_list
                     print "min_clearance : ", min(self.clearance_list) - 0.434
+
+                    #  print "self.clearance_listi2 : ", self.clearance_list2
+                    print "min_clearance2 : ", min(self.clearance_list2) - 0.434
 
                     #  print "self.velocity_list : ", self.velocity_list
                     print "average_velocity : ", sum(self.velocity_list) / len(self.velocity_list)
@@ -146,7 +182,6 @@ class MocapExperiment:
 
                     sys.exit(1)
                 
-
 
 def main():
     rospy.init_node("experimental_evaluation_mocap")

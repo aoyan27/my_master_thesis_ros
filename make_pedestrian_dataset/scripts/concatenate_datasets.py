@@ -69,8 +69,9 @@ class ConcatenateDataset:
         reward_map = data['reward']
         state_list = data['state']
         action_list = data['action']
+        dataset_size = len(grid_image)
         print "Load %d trajectory_data!!!" % len(grid_image)
-        return grid_image, reward_map, state_list, action_list
+        return dataset_size, grid_image, reward_map, state_list, action_list
 
     def save_dataset(self, data, filename):
         save_filename = self.abs_path+filename
@@ -141,8 +142,9 @@ def main():
             for file in files:
                 dataset_file = path + '/' + file
                 print "dataset_file : ", dataset_file
-                grid_image, reward_map, state_list, action_list = cd.load_dataset(dataset_file)
-                cd.concatenate_dataset(grid_image, reward_map, state_list, action_list)
+                dataset_size, grid_image, reward_map, state_list, action_list = cd.load_dataset(dataset_file)
+                if dataset_size != 0:
+                    cd.concatenate_dataset(grid_image, reward_map, state_list, action_list)
 
 
     print "concat_data_size : ", len(cd.all_grid_image)

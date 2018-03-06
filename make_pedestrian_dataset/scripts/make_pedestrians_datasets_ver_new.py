@@ -41,8 +41,8 @@ class CreateDatasetLocalMapTrajectory:
         
         self.view_trajs_pub = rospy.Publisher("/view_trajs", MarkerArray, queue_size=1)
 
-        np.random.seed(0)
-        self.max_human = 3000
+        np.random.seed(5)
+        self.max_human = 30000
         self.color_list = [ColorRGBA(r=np.random.rand(), g=np.random.rand(), b=np.random.rand(), \
                                      a=1.0) for i in xrange(self.max_human)]
 
@@ -118,8 +118,8 @@ class CreateDatasetLocalMapTrajectory:
                     % (date_time, self.scenario_count, total_time)
 
         print "File : ", filename
-        with open(filename, mode='wb') as f:
-            pickle.dump(self.local_map_and_trajectories_data, f)
+        #  with open(filename, mode='wb') as f:
+            #  pickle.dump(self.local_map_and_trajectories_data, f)
 
 
     def localMapCallback(self, msg):
@@ -177,8 +177,9 @@ class CreateDatasetLocalMapTrajectory:
         for i in xrange(len(self.trajectories.markers)):
             self.trajectories.markers[i].type = Marker.LINE_STRIP
             self.trajectories.markers[i].action = Marker.ADD
-            self.trajectories.markers[i].scale.x = 0.30
+            self.trajectories.markers[i].scale.x = 0.1
             self.trajectories.markers[i].lifetime = rospy.Duration(5.0)
+            #  self.trajectories.markers[i].lifetime = rospy.Duration()
 
     def reset_all_variables(self):
         self.reset_trajectories_and_velocities()
@@ -213,20 +214,20 @@ class CreateDatasetLocalMapTrajectory:
             print "num_humans(max) : ", num_humans
         
         time_stamp = rospy.Time.now()
-        for i in xrange(self.max_human):
-            if self.trajs_length_list[i] == 0:
-                #  print "!!!!!!!!!!! Set init dummy point and velocity_vector !!!!!!!!!!"
-                self.set_trajectory_parameter(i, time_stamp, \
-                                              self.dummy_position, \
-                                              self.dummy_velocity_vector, append=True)
-            else:
-                before_position = self.trajectories.markers[i].points[-1]
-                before_velocity_vector = self.trajs_velocity_vector_list[i][-1]
+        #  for i in xrange(self.max_human):
+            #  if self.trajs_length_list[i] == 0:
+                #  #  print "!!!!!!!!!!! Set init dummy point and velocity_vector !!!!!!!!!!"
+                #  self.set_trajectory_parameter(i, time_stamp, \
+                                              #  self.dummy_position, \
+                                              #  self.dummy_velocity_vector, append=True)
+            #  else:
+                #  before_position = self.trajectories.markers[i].points[-1]
+                #  before_velocity_vector = self.trajs_velocity_vector_list[i][-1]
 
-                #  if before_position == self.dummy_position:
-                self.set_trajectory_parameter(i, time_stamp, \
-                                              self.dummy_position, \
-                                              self.dummy_velocity_vector, append=True)
+                #  #  if before_position == self.dummy_position:
+                #  self.set_trajectory_parameter(i, time_stamp, \
+                                              #  self.dummy_position, \
+                                              #  self.dummy_velocity_vector, append=True)
                 #  else:
                     #  self.trajs_no_update_count_list[i] += 1
                     #  print " self.trajs_no_update_count_list[i] : ",  self.trajs_no_update_count_list[i]
@@ -255,10 +256,20 @@ class CreateDatasetLocalMapTrajectory:
 
             range_flag = np.array([math.fabs(position.x), math.fabs(position.y)]) \
                     <= self.range_constraint
+            print "range_flag : ", range_flag 
             if range_flag.all():
                 if human_id < self.max_human:
-                    self.set_trajectory_parameter(human_id, time_stamp, position, velocity_vector)
                     self.trajs_no_update_count_list[i] = 0
+                    #  if self.trajs_length_list[i] == 0:
+                    self.set_trajectory_parameter(human_id, time_stamp, position, velocity_vector, append=True)
+                    print "append!!"
+                    #  else:
+                        #  self.set_trajectory_parameter(human_id, time_stamp, position, velocity_vector)
+                    #  if self.trajs_length_list[i] == 0:
+                        #  self.set_trajectory_parameter(human_id, time_stamp, position, velocity_vector, append=True)
+                    #  else:
+                        #  self.set_trajectory_parameter(human_id, time_stamp, position, velocity_vector)
+
 
 
         for j in xrange(self.max_human):
@@ -293,7 +304,7 @@ def main():
     
     #  loop_rate = rospy.Rate(20)
     #  print 'Registering'
-    atexit.register(cdlt.save_dataset)
+    #  atexit.register(cdlt.save_dataset)
     #  print 'Registered'
 
     
