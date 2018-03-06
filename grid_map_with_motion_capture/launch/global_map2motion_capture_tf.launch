@@ -3,7 +3,7 @@
 	<arg name="map_file" default="$(find grid_map_with_motion_capture)/global_maps/crcl_global_grid_map.yaml"/>
 	<node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
 
-	<rosparam command="load" file="$(find grid_map_with_motion_capture)/conf/20180216/TFmap2vicon.yaml" />
+	<rosparam command="load" file="$(find grid_map_with_motion_capture)/conf/20180216_2/TFmap2vicon.yaml" />
 	<node name="set_tf_map2world" pkg="grid_map_with_motion_capture" type="set_tf_map2world" output="screen"/>
 
 	<rosparam command="load" file="$(find grid_map_with_motion_capture)/conf/map2input_map_tf.yaml" />

@@ -1,0 +1,4 @@
+TFmap2vicon:
+    parent_frame: /map
+    child_frame: /world
+    6DoF: [-0.014990, -0.138118, 0.0, 0.0, 0.0, -0.010611] # x, y, z, roll, pitch, yaw
