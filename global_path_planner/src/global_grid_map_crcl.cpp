@@ -166,7 +166,8 @@ int main(int argc, char** argv)
 	ros::init(argc, argv, "global_obs_map_crcl");
 	ros::NodeHandle n;
 
-	ros::Subscriber global_map_sub = n.subscribe("/dilated_obs_map", 1, globalMapCallback);
+	// ros::Subscriber global_map_sub = n.subscribe("/dilated_obs_map", 1, globalMapCallback);
+	ros::Subscriber global_map_sub = n.subscribe("/map", 1, globalMapCallback);
 	ros::Subscriber crcl_points_sub = n.subscribe("/points_4", 1, crclPointsCallback);
 
 	ros::Publisher crcl_map_pub = n.advertise<nav_msgs::OccupancyGrid>("/crcl_obs_map", 1);

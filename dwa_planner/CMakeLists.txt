@@ -157,6 +157,11 @@ include_directories(
 
 ## Declare a C++ executable
 add_executable(dwa src/dwa.cpp)
+add_executable(dwa_new src/dwa_new.cpp)
+add_executable(dwa_with_motion_capture src/dwa_with_motion_capture.cpp)
+add_executable(dwa_with_motion_capture_old src/dwa_with_motion_capture_old.cpp)
+
+add_executable(dwa_only src/dwa_only.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -164,6 +169,19 @@ add_executable(dwa src/dwa.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(dwa
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(dwa_new
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(dwa_with_motion_capture
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(dwa_with_motion_capture_old
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(dwa_only
   ${catkin_LIBRARIES}
 )
 

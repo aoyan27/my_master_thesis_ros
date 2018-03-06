@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <std_msgs/Int32MultiArray.h>
+#include <std_msgs/Float32MultiArray.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -26,7 +27,6 @@ using namespace std;
 
 #define collision_threshold 0.15
 
-
 double MAX_VEL;
 double MIN_VEL;
 double MAX_ROT_VEL;
@@ -41,6 +41,9 @@ double COST_OBS;
 double COST_VEL;
 double COST_HEAD;
 double COST_INV_TARGET;
+
+ros::Duration target_lifetime = ros::Duration();
+ros::Duration path_lifetime = ros::Duration(0.05);
 
 
 visualization_msgs::MarkerArray path_candidate;
@@ -67,18 +70,18 @@ vector<double> get_DynamicWindow(nav_msgs::Odometry state, double dt)
 {
 	vibration_suppression_count++;
 	vector<double> Vs{MIN_VEL, MAX_VEL, -MAX_ROT_VEL, MAX_ROT_VEL};
-	cout<<"**********************"<<endl;
-	for(size_t i=0; i<Vs.size();i++){
-		cout<<"Vs["<<i<<"] : "<<Vs[i]<<endl;
-	}
+	// cout<<"**********************"<<endl;
+	// for(size_t i=0; i<Vs.size();i++){
+		// cout<<"Vs["<<i<<"] : "<<Vs[i]<<endl;
+	// }
 	double linear = state.twist.twist.linear.x;
 	double angular = state.twist.twist.angular.z;
 	vector<double> Vd{linear-ACC_LIM_TRANS*dt, linear+ACC_LIM_TRANS*dt, 
 					  angular-ACC_LIM_ROT*dt, angular+ACC_LIM_ROT*dt};
-	cout<<"++++++++++++++++++++++"<<endl;
-	for(size_t i=0; i<Vd.size();i++){
-		cout<<"Vd["<<i<<"] : "<<Vd[i]<<endl;
-	}
+	// cout<<"++++++++++++++++++++++"<<endl;
+	// for(size_t i=0; i<Vd.size();i++){
+		// cout<<"Vd["<<i<<"] : "<<Vd[i]<<endl;
+	// }
 	vector<double> Vr = Vs;
 	size_t Vr_size = Vr.size();
 	for(size_t i=0; i<Vr_size; i++){
@@ -93,21 +96,21 @@ vector<double> get_DynamicWindow(nav_msgs::Odometry state, double dt)
 			}	
 		}
 	}
-	if(vibration_suppression_count < 5){
-		vibration_suppression_count = 0;
-		if(fabs(angular) > 0.05){
-			if(angular < 0){
-				Vr[3] = 0.0;
-			}
-			else{
-				Vr[2] = 0.0;
-			}
-		}
-	}
-	cout<<"--------------------"<<endl;
-	for(size_t i=0; i<Vr.size();i++){
-		cout<<"Vr["<<i<<"] : "<<Vr[i]<<endl;
-	}
+	// if(vibration_suppression_count < 5){
+		// vibration_suppression_count = 0;
+		// if(fabs(angular) > 0.05){
+			// if(angular < 0){
+				// Vr[3] = 0.0;
+			// }
+			// else{
+				// Vr[2] = 0.0;
+			// }
+		// }
+	// }
+	// cout<<"--------------------"<<endl;
+	// for(size_t i=0; i<Vr.size();i++){
+		// cout<<"Vr["<<i<<"] : "<<Vr[i]<<endl;
+	// }
 	return Vr;
 }
 
@@ -115,13 +118,13 @@ vector<double> get_sample_resolution(vector<double> Vr,
 									 int num_samples_vel, int num_samples_rot_vel)
 {
 	double diff_vel = Vr[1] - Vr[0];
-	cout<<"diff_vel : "<<diff_vel<<endl;
+	// cout<<"diff_vel : "<<diff_vel<<endl;
 	double diff_rot_vel = Vr[3] - Vr[2];
-	cout<<"diff_rot_vel : "<<diff_rot_vel<<endl;
+	// cout<<"diff_rot_vel : "<<diff_rot_vel<<endl;
 	double res_vel = fabs(diff_vel / num_samples_vel);
 	double res_rot_vel = fabs(diff_rot_vel / num_samples_rot_vel);
-	cout<<"res_vel : "<<res_vel<<endl;
-	cout<<"res_rot_vel : "<<res_rot_vel<<endl;
+	// cout<<"res_vel : "<<res_vel<<endl;
+	// cout<<"res_rot_vel : "<<res_rot_vel<<endl;
 	vector<double> sample_resolutions{res_vel, res_rot_vel};
 
 	return sample_resolutions;
@@ -148,9 +151,7 @@ void set_vis_traj(vector<geometry_msgs::PoseStamped> traj,
 	marker.color.b = 52.0 / 255.0;
 	marker.color.a = 1.0;
 
-	marker.lifetime = ros::Duration();
-	// marker.lifetime = ros::Duration(0.1);
-	// marker.lifetime = ros::Duration(0.025);
+	marker.lifetime = path_lifetime;
 	
 	for(size_t i=0; i<traj_size; i++){
 		marker.points.push_back(traj[i].pose.position);
@@ -164,7 +165,7 @@ visualization_msgs::Marker get_selected_path(visualization_msgs::MarkerArray can
 	selected_path.color.g = 0.0;
 	selected_path.color.b = 0.0;
 	selected_path.color.a = 1.0;
-	selected_path.scale.x = 0.01;
+	selected_path.scale.x = 0.03;
 
 	size_t path_size = selected_path.points.size();
 	for(size_t i=0; i<path_size; i++){
@@ -176,7 +177,8 @@ visualization_msgs::Marker get_selected_path(visualization_msgs::MarkerArray can
 geometry_msgs::PoseStamped set_robot_pose(double x, double y, double yaw)
 {
 	geometry_msgs::PoseStamped robot_pose;
-	robot_pose.header.frame_id = "/velodyne";
+	// robot_pose.header.frame_id = "/velodyne";
+	robot_pose.header.frame_id = "/map";
 	robot_pose.header.stamp = ros::Time::now();
 
 	robot_pose.pose.position.x = x;
@@ -186,7 +188,6 @@ geometry_msgs::PoseStamped set_robot_pose(double x, double y, double yaw)
 	robot_pose.pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
 	// cout<<"robot_pose : "<<robot_pose<<endl;
 	return robot_pose;
-	
 }
 
 geometry_msgs::PoseStamped move(geometry_msgs::PoseStamped robot_pose, 
@@ -226,11 +227,17 @@ bool check_collision(geometry_msgs::PoseStamped robot, vector<geometry_msgs::Poi
 	return collision_flag;
 }
 
-vector<geometry_msgs::PoseStamped> get_future_trajectory(double linear, double angular, double sim_time, double dt)
+vector<geometry_msgs::PoseStamped> get_future_trajectory(double linear, double angular, 
+														 double sim_time, double dt)
 {
 	vector<geometry_msgs::PoseStamped> trajectory;
 	geometry_msgs::PoseStamped robot_pose;
-	robot_pose = set_robot_pose(0.0, 0.0, 0.0);
+	double yaw = tf::getYaw(current_state.pose.pose.orientation);
+	// cout<<"yaw : "<<yaw<<endl;
+	robot_pose = set_robot_pose(current_state.pose.pose.position.x, 
+								current_state.pose.pose.position.y, 
+								yaw);
+	// robot_pose = set_robot_pose(0.0, 0.0, 0.0);
 	trajectory.push_back(robot_pose);
 	double time = 0.0;
 	while(time <= sim_time){
@@ -492,9 +499,11 @@ vector<geometry_msgs::Point> get_continuous_obs_position(nav_msgs::OccupancyGrid
 	// cout<<"obs_index_size : "<<(int)obs_index_size<<endl;
 	vector<geometry_msgs::Point> continuous_obs_position(obs_index_size);
 	for(size_t i=0; i<obs_index_size; i++){
-		double x = (obs_index[i] % map.info.width) * map.info.resolution + map.info.origin.position.x;
+		double x 
+			= (obs_index[i] % map.info.width) * map.info.resolution + map.info.origin.position.x;
 		// cout<<"x : "<<x<<endl;
-		double y = int(obs_index[i] / map.info.width) * map.info.resolution + map.info.origin.position.y;
+		double y 
+			= int(obs_index[i] / map.info.width) * map.info.resolution + map.info.origin.position.y;
 		// cout<<"y : "<<y<<endl;
 		geometry_msgs::Point obs_position;
 		obs_position.x = x;
@@ -529,7 +538,8 @@ void lclCallback(nav_msgs::Odometry msg)
 
 void set_target_marker(vector<geometry_msgs::Point> target, visualization_msgs::Marker &marker)
 {
-	marker.header.frame_id = "/velodyne";
+	// marker.header.frame_id = "/velodyne";
+	marker.header.frame_id = "/map";
 	marker.header.stamp = ros::Time::now();
 	marker.id = 0;
 	marker.ns = "vin_target";
@@ -544,9 +554,7 @@ void set_target_marker(vector<geometry_msgs::Point> target, visualization_msgs::
 	marker.color.b = 0.7;
 	marker.color.a = 1.0;
 
-	marker.lifetime = ros::Duration();
-	// marker.lifetime = ros::Duration(0.1);
-	// marker.lifetime = ros::Duration(0.05);
+	marker.lifetime = target_lifetime;
 
 	size_t target_size = target.size();
 	for(size_t i=0; i<target_size; i++){
@@ -583,27 +591,58 @@ vector< vector<int> > reshape_2dim(vector<int> input_array, int rows, int cols)
 	return output_array;
 }
 
-void vinNextTargetCallback(std_msgs::Int32MultiArray msg)
+vector< vector<float> > reshape_2dim_float(vector<float> input_array, int rows, int cols)
 {
+	vector< vector<float> > output_array;
+	for(int i=0; i<rows; i++){
+		vector<float> a(cols, 0);
+		for(int j=0; j<cols; j++){
+			a[j] = input_array[j+i*cols];
+		}
+		output_array.push_back(a);
+	}
+	// cout<<"grid_map : "<<endl;
+	// view_gridmap(output_array);
+	return output_array;
+}
+
+void vinNextTargetCallback(std_msgs::Float32MultiArray msg)
+{
+	// cout<<"============================================"<<endl;
 	target_path.clear();
-	double res = local_map.info.resolution * float(local_map.info.width) / float(msg.layout.dim[0].size);
-	// cout<<"local_map.info.resolution : "<<local_map.info.resolution<<endl;
-	// cout<<"local_map.info.width : "<<local_map.info.width<<endl;
-	// cout<<"res : "<<res<<endl;
 	int rows = msg.data.size();
 	// cout<<"rows : "<<rows<<endl;
-	vector< vector<int> > state_list;
-	state_list = reshape_2dim(msg.data, rows/2, 2);
-	for(size_t i=0; i<state_list.size(); i++){
-		// cout<<"state_list["<<i<<"] : "<<state_list[i][0]<<", "<<state_list[i][1]<<endl;
-		double x = state_list[i][1] * res + local_map.info.origin.position.x;
-		double y = state_list[i][0] * res + local_map.info.origin.position.y;
+	int num_target_path = rows / 2;
+	cout<<"num_target_path : "<<num_target_path<<endl;
+	vector< vector<float> > continuous_state_list;
+	continuous_state_list = reshape_2dim_float(msg.data, num_target_path, 2);
+	if(0 < num_target_path && num_target_path <= 2){
+		float diff_x = continuous_state_list[continuous_state_list.size()-1][1] 
+					 - continuous_state_list[0][1];
+		float diff_y = continuous_state_list[continuous_state_list.size()-1][0] 
+					 - continuous_state_list[0][0];
+		// cout<<"diff_x : "<<diff_x<<endl;
+		// cout<<"diff_y : "<<diff_y<<endl;
+		for(int i=0; i<6; i++){
+			float x = continuous_state_list[continuous_state_list.size()-1][1] + diff_x;
+			float y = continuous_state_list[continuous_state_list.size()-1][0] + diff_y;
+			vector<float> continuous_state{y, x};
+			continuous_state_list.push_back(continuous_state);
+		}
+	}
+	size_t continuous_state_list_size = continuous_state_list.size();
+	cout<<"continuous_state_list_size : "<<continuous_state_list_size<<endl;
+	for(size_t i=0; i<continuous_state_list_size; i++){
+		// cout<<"continuous_state_list["<<i<<"] : "
+			// <<continuous_state_list[i][1]<<", "<<continuous_state_list[i][0]<<endl;
+		double x = continuous_state_list[i][1];
+		double y = continuous_state_list[i][0];
 		// cout<<"x : "<<x<<endl;
 		// cout<<"y : "<<y<<endl;
 		geometry_msgs::Point target_point;
 		target_point.x = x;
 		target_point.y = y;
-		target_point.z = 0.0;
+		target_point.z = 0.1;
 		target_path.push_back(target_point);
 	}
 	for(size_t i=0; i<target_path.size(); i++){
@@ -612,7 +651,7 @@ void vinNextTargetCallback(std_msgs::Int32MultiArray msg)
 	
 	next_target.x = target_path[target_path.size()-1].x;
 	next_target.y = target_path[target_path.size()-1].y;
-	next_target.z = 0.0;
+	next_target.z = 0.08;
 	// cout<<"next_target : "<<next_target<<endl;
 
 	visualization_msgs::Marker vis_target;
@@ -658,11 +697,15 @@ int main(int argc, char** argv)
 	print_param();
 
 
-	ros::Subscriber local_map_sub = n.subscribe("/local_map", 1, localMapCallback);
+	ros::Subscriber local_map_sub = n.subscribe("/input_grid_map/vin/expand", 1, localMapCallback);
+	// ros::Subscriber local_map_sub = n.subscribe("/local_map", 1, localMapCallback);
 	// ros::Subscriber local_map_sub = n.subscribe("/local_map_real", 1, localMapCallback);
 	// ros::Subscriber local_map_sub = n.subscribe("/local_map_real/expand", 1, localMapCallback);
 	ros::Subscriber lcl_sub = n.subscribe("/lcl5", 1, lclCallback);
-	ros::Subscriber vin_next_targe_sub = n.subscribe("/vin/target_path", 1, vinNextTargetCallback);
+	// ros::Subscriber vin_next_targe_sub 
+		// = n.subscribe("/vin/target_path", 1, vinNextTargetCallback);
+	ros::Subscriber vin_next_targe_sub 
+		= n.subscribe("/vin/target_path/continuous", 1, vinNextTargetCallback);
 
 	ros::Publisher cmd_vel_pub = n.advertise<knm_tiny_msgs::Velocity>("/control_command", 1);
 	ros::Publisher vis_path_selected_pub = n.advertise<visualization_msgs::Marker>("/vis_path/selected", 1);
@@ -676,7 +719,7 @@ int main(int argc, char** argv)
 	double dt = 0.1;
 
 	while(ros::ok()){
-		// cout<<"**********************"<<endl;
+		cout<<"**********************"<<endl;
 		if(sub_local_map && sub_lcl && sub_next_target){
 			clock_t start = clock();
 			vector<double> Vr;
@@ -694,7 +737,7 @@ int main(int argc, char** argv)
 
 			knm_tiny_msgs::Velocity control_command;
 			control_command.op_linear = velocity_vector[0];
-			control_command.op_angular = velocity_vector[1];
+			control_command.op_angular = -1.0*velocity_vector[1];
 			cmd_vel_pub.publish(control_command);
 
 			// vis_path_single_pub.publish(vis_traj);

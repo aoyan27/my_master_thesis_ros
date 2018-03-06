@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+	<include file="$(find grid_map_with_motion_capture)/launch/global_map2motion_capture_tf.launch" />
+
+	<node name="convert_convert_motion_capture_data" pkg="grid_map_with_motion_capture" type="convert_motion_capture_data"/>
+
+	<node name="extract_grid_map" pkg="grid_map_with_motion_capture" type="extract_grid_map"/>
+	
+</launch>

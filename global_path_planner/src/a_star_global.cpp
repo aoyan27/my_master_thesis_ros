@@ -247,7 +247,7 @@ bool a_star(nav_msgs::Odometry state, geometry_msgs::PoseStamped target,
 		int challenge_times = 0;
 		while(!found && !resign){
 			if(challenge_times > 500){
-				cout<<"challenge falied!!"<<endl;
+				printf("challenge failed!!\n");
 				break;
 			}
 			// cout<<"=========================="<<endl;
@@ -280,7 +280,7 @@ bool a_star(nav_msgs::Odometry state, geometry_msgs::PoseStamped target,
 				n++;
 
 				if(x==goal_x && y==goal_y){
-					cout<<"found!!"<<endl;
+					printf("found!!\n");
 					found = true;
 					break;
 				}
@@ -351,11 +351,20 @@ bool a_star(nav_msgs::Odometry state, geometry_msgs::PoseStamped target,
 		}
 
 		clock_t end_time = clock();
-		cout<<"duration = " << (double)(end_time - start_time) / CLOCKS_PER_SEC << "sec."<<endl;
+		printf("duration = %f[sec]\n",(double)(end_time - start_time) / CLOCKS_PER_SEC);
 		return found;
 	}
 	else{
-		cout<<"No global map!!"<<endl;
+		if(!sub_global_map){
+			printf("No global map!!\n");
+		}
+		if(!sub_target_pose){
+			printf("No target_pose!!\n");
+		}
+		if(!sub_lcl){
+			printf("No lcl!!\n");
+		}
+
 		return false;
 	}
 }
@@ -386,7 +395,7 @@ nav_msgs::Path set_trajectory(vector< vector<int> > state_list)
 void globalMapCallback(nav_msgs::OccupancyGrid msg)
 {
 	global_map = msg;
-	cout<<"Subscribe global_map!!"<<endl;
+	// cout<<"Subscribe global_map!!"<<endl;
 	sub_global_map = true;
 }
 
@@ -401,10 +410,10 @@ void targetPoseCallback(geometry_msgs::PoseStamped msg)
 			vector<int> discreate_target 
 				= continuous2discreate(msg.pose.position.x, msg.pose.position.y);
 			heuristic = create_heuristic(rows, cols, discreate_target);
-			cout<<"new heuristic!!"<<endl;
+			// cout<<"new heuristic!!"<<endl;
 		}
 		target_pose = msg;
-		cout<<"Subscribe target_pose!!"<<endl;
+		// cout<<"Subscribe target_pose!!"<<endl;
 		sub_target_pose = true;
 	}
 }
@@ -412,7 +421,7 @@ void targetPoseCallback(geometry_msgs::PoseStamped msg)
 void lclCallback(nav_msgs::Odometry msg)
 {
 	lcl = msg;
-	cout<<"Subscribe lcl!!"<<endl;
+	// cout<<"Subscribe lcl!!"<<endl;
 	sub_lcl = true;
 }
 
@@ -443,14 +452,14 @@ int main(int argc, char** argv)
 	global_path.header.frame_id = global_map.header.frame_id;
 
 	while(ros::ok()){
-		cout<<"***********************"<<endl;
+		printf("***********************\n");
 		path_found = a_star(lcl, target_pose, state_list, action_list);
 		if(path_found){
 			// cout<<"state_list : "<<endl;
 			// view_gridmap(state_list);
 			// cout<<"action_list : "<<endl;
 			// view_array(action_list);
-			cout<<"state_list_size : "<<state_list.size()<<endl;
+			// cout<<"state_list_size : "<<state_list.size()<<endl;
 			
 			global_path = set_trajectory(state_list);
 			// global_path_pub.publish(global_path);

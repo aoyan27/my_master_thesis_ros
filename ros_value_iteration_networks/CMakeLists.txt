@@ -30,6 +30,20 @@ include_directories(${Eigen_INCLUDE_DIRS})
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
 # catkin_python_setup()
 
+include(CheckCXXCompilerFlag)
+	CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+	#CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+if(COMPILER_SUPPORTS_CXX11)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+#elseif(COMPILER_SUPPORTS_CXX0X)
+#	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+else()
+	message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+endif()
+
+
+SET(CMAKE_CXX_FLAGS "-std=c++11 -O3 -g -Wall ${CMAKE_CXX_FLAGS}")
+
 ################################################
 ## Declare ROS messages, services and actions ##
 ################################################
@@ -139,14 +153,25 @@ include_directories(
 # add_dependencies(ros_value_iteration_networks ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(pc2local_map_for_vin src/pc2local_map_for_vin.cpp)
+add_executable(create_input_grid_map src/create_input_grid_map.cpp)
+
+add_executable(convert_human2input_data src/convert_human2input_data.cpp)
+add_executable(convert_human2input_data_new src/convert_human2input_data_new.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(ros_value_iteration_networks_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(pc2local_map_for_vin
+target_link_libraries(create_input_grid_map
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIEs}
+)
+
+target_link_libraries(convert_human2input_data
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(convert_human2input_data_new
   ${catkin_LIBRARIES}
 )
 

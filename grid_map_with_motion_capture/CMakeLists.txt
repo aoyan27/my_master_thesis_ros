@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(global_path_planner)
+project(grid_map_with_motion_capture)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -12,17 +12,13 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   tf
+  vicon_bridge
   visualization_msgs
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-
-
-## Uncomment this if the package has a setup.py. This macro ensures
-## modules and global scripts declared therein get installed
-## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-# catkin_python_setup()
+find_package(PCL 1.8.0 REQUIRED)
 
 find_package(OpenMP REQUIRED)
 if(OPENMP_FOUND)
@@ -32,6 +28,11 @@ if(OPENMP_FOUND)
 	set(CMAKE_C_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
+
+## Uncomment this if the package has a setup.py. This macro ensures
+## modules and global scripts declared therein get installed
+## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
+# catkin_python_setup()
 
 include(CheckCXXCompilerFlag)
 	CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
@@ -45,7 +46,8 @@ else()
 endif()
 
 
-SET(CMAKE_CXX_FLAGS "-std=c++11 -O3 -g -Wall ${CMAKE_CXX_FLAGS}")
+SET(CMAKE_CXX_FLAGS "-std=c++11 -O2 -g -Wall ${CMAKE_CXX_FLAGS}")
+
 ################################################
 ## Declare ROS messages, services and actions ##
 ################################################
@@ -94,7 +96,7 @@ SET(CMAKE_CXX_FLAGS "-std=c++11 -O3 -g -Wall ${CMAKE_CXX_FLAGS}")
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   geometry_msgs#   nav_msgs#   sensor_msgs#   std_msgs
+#   geometry_msgs#   nav_msgs#   sensor_msgs#   std_msgs#   visualization_msgs
 # )
 
 ################################################
@@ -128,8 +130,8 @@ SET(CMAKE_CXX_FLAGS "-std=c++11 -O3 -g -Wall ${CMAKE_CXX_FLAGS}")
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES global_path_planner
-#  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy sensor_msgs std_msgs tf
+#  LIBRARIES global_map_with_motion_capture
+ CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy sensor_msgs std_msgs tf vicon_bridge visualization_msgs
 #  DEPENDS system_lib
 )
 
@@ -142,35 +144,44 @@ catkin_package(
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 )
 
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
+
 ## Declare a C++ library
-# add_library(global_path_planner
-#   src/${PROJECT_NAME}/global_path_planner.cpp
+# add_library(global_map_with_motion_capture
+#   src/${PROJECT_NAME}/global_map_with_motion_capture.cpp
 # )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(global_path_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(global_map_with_motion_capture ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(a_star_global src/a_star_global.cpp)
-add_executable(a_star_local_goal src/a_star_local_goal.cpp)
-add_executable(global_grid_map_crcl src/global_grid_map_crcl.cpp)
+add_executable(set_tf_map2world src/set_tf_map2world.cpp)
+add_executable(set_tf_map2input_map src/set_tf_map2input_map.cpp)
+add_executable(convert_motion_capture_data src/convert_motion_capture_data.cpp)
+add_executable(extract_grid_map src/extract_grid_map.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(global_path_planner_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(global_map_with_motion_capture_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(a_star_global
+target_link_libraries(set_tf_map2world
   ${catkin_LIBRARIES}
 )
-target_link_libraries(a_star_local_goal
+target_link_libraries(set_tf_map2input_map
   ${catkin_LIBRARIES}
 )
-target_link_libraries(global_grid_map_crcl
+target_link_libraries(convert_motion_capture_data
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+target_link_libraries(extract_grid_map
   ${catkin_LIBRARIES}
 )
 
@@ -189,7 +200,7 @@ target_link_libraries(global_grid_map_crcl
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS global_path_planner global_path_planner_node
+# install(TARGETS global_map_with_motion_capture global_map_with_motion_capture_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -214,7 +225,7 @@ target_link_libraries(global_grid_map_crcl
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_global_path_planner.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_global_map_with_motion_capture.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

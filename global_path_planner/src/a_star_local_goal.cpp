@@ -63,7 +63,7 @@ void globalPathCallback(nav_msgs::Path msg)
 	sub_global_path = true;
 
 	global_path = msg;
-	cout<<"subscribe global_path!!"<<endl;
+	// cout<<"subscribe global_path!!"<<endl;
 }
 
 void localMapCallback(nav_msgs::OccupancyGrid msg)
@@ -71,7 +71,7 @@ void localMapCallback(nav_msgs::OccupancyGrid msg)
 	sub_local_map = true;
 
 	local_map = msg;
-	cout<<"Subscribe local_map!!"<<endl;
+	// cout<<"Subscribe local_map!!"<<endl;
 }
 
 void lclCallback(nav_msgs::Odometry msg)
@@ -79,7 +79,7 @@ void lclCallback(nav_msgs::Odometry msg)
 	sub_lcl = true;
 
 	lcl = msg;
-	cout<<"Subscribe lcl!!"<<endl;
+	// cout<<"Subscribe lcl!!"<<endl;
 }
 
 void set_vis_local_goal(geometry_msgs::PoseStamped local_goal, 
@@ -142,7 +142,9 @@ geometry_msgs::PoseStamped get_local_goal(nav_msgs::Path global_path_)
 					= get_local_goal_orientation(global_path_.poses[min_index-1], 
 												 global_path_.poses[min_index]);
 			}
-			cout<<"local_goal : "<<endl<<local_goal<<endl;
+			printf("local_goal : (%.3f, %.3f, %.3f)\n", local_goal.pose.position.x, 
+														local_goal.pose.position.y, 
+														local_goal.pose.position.z);
 		}
 	}
 	return local_goal;
@@ -172,8 +174,7 @@ int main(int argc, char** argv)
 
 	while(ros::ok()){
 		if(sub_global_path && sub_local_map && sub_lcl){
-			cout<<"======================="<<endl;
-			cout<<"publish!!"<<endl;
+			printf("=================================\n");
 			local_goal = get_local_goal(global_path);
 			local_goal.header.stamp = ros::Time::now();
 			local_goal.header.frame_id = global_path.header.frame_id;

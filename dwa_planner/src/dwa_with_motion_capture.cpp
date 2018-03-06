@@ -42,15 +42,17 @@ double COST_VEL;
 double COST_HEAD;
 double COST_INV_TARGET;
 
-
 visualization_msgs::MarkerArray path_candidate;
 visualization_msgs::Marker selected_path;
 
 nav_msgs::OccupancyGrid local_map;
-nav_msgs::Odometry current_state;
+visualization_msgs::Marker current_state;
+visualization_msgs::Marker before_state;
+nav_msgs::Odometry tiny_odom;
 geometry_msgs::Point next_target;
 
 vector<geometry_msgs::Point> obs_position_list;
+vector<geometry_msgs::Point> ex_obs_position_list;
 vector<geometry_msgs::Point > target_path;
 
 
@@ -61,18 +63,52 @@ bool sub_local_map = false;
 bool sub_lcl = false;
 bool sub_next_target = false;
 
+bool first_flag = true;
+
 int vibration_suppression_count = 0;
 
-vector<double> get_DynamicWindow(nav_msgs::Odometry state, double dt)
+vector<double> get_DynamicWindow(visualization_msgs::Marker state, visualization_msgs::Marker &before_state_, double dt)
 {
-	vibration_suppression_count++;
 	vector<double> Vs{MIN_VEL, MAX_VEL, -MAX_ROT_VEL, MAX_ROT_VEL};
 	cout<<"**********************"<<endl;
 	for(size_t i=0; i<Vs.size();i++){
 		cout<<"Vs["<<i<<"] : "<<Vs[i]<<endl;
 	}
-	double linear = state.twist.twist.linear.x;
-	double angular = state.twist.twist.angular.z;
+	// double linear = state.scale.x;
+	double linear = tiny_odom.twist.twist.linear.x;
+	// cout<<"linear_ : "<<linear<<endl;
+	ros::Duration d = state.header.stamp - before_state_.header.stamp;
+	cout<<"d : "<<d<<endl;
+	double d_sec = d.toSec();
+	cout<<"d_sec : "<<d_sec<<endl;
+	double current_orientation = tf::getYaw(state.pose.orientation);
+	double before_orientation = tf::getYaw(before_state_.pose.orientation);
+	// cout<<"current_orientation : "<<current_orientation<<endl;
+	// cout<<"before_orientation : "<<before_orientation<<endl;
+	double angular = 0.0;
+	if(current_orientation*before_orientation > 0){
+		angular = current_orientation - before_orientation;
+	}
+	else{
+		if(fabs(current_orientation) > M_PI/2.0){
+			double tmp_angular = current_orientation - before_orientation;
+			if(tmp_angular >= 0){
+				angular = tmp_angular - 2.0*M_PI;
+			}
+			else{
+				angular = tmp_angular + 2.0*M_PI;
+			}
+		}
+		else{
+			angular = current_orientation - before_orientation;
+		}
+	}
+	// angular = angular / dt;
+	angular = tiny_odom.twist.twist.angular.z;
+	cout<<"angular_ : "<<angular<<endl;
+	before_state_ = state;
+	// vector<double> Vd{linear-ACC_LIM_TRANS*dt, linear+ACC_LIM_TRANS*dt, 
+					  // angular-ACC_LIM_ROT*d_sec, angular+ACC_LIM_ROT*d_sec};
 	vector<double> Vd{linear-ACC_LIM_TRANS*dt, linear+ACC_LIM_TRANS*dt, 
 					  angular-ACC_LIM_ROT*dt, angular+ACC_LIM_ROT*dt};
 	cout<<"++++++++++++++++++++++"<<endl;
@@ -93,17 +129,17 @@ vector<double> get_DynamicWindow(nav_msgs::Odometry state, double dt)
 			}	
 		}
 	}
-	if(vibration_suppression_count < 5){
-		vibration_suppression_count = 0;
-		if(fabs(angular) > 0.05){
-			if(angular < 0){
-				Vr[3] = 0.0;
-			}
-			else{
-				Vr[2] = 0.0;
-			}
-		}
-	}
+	// if(vibration_suppression_count < 5){
+		// vibration_suppression_count = 0;
+		// if(fabs(angular) > 0.1){
+			// if(angular < 0){
+				// Vr[3] = 0.0;
+			// }
+			// else{
+				// Vr[2] = 0.0;
+			// }
+		// }
+	// }
 	cout<<"--------------------"<<endl;
 	for(size_t i=0; i<Vr.size();i++){
 		cout<<"Vr["<<i<<"] : "<<Vr[i]<<endl;
@@ -148,8 +184,8 @@ void set_vis_traj(vector<geometry_msgs::PoseStamped> traj,
 	marker.color.b = 52.0 / 255.0;
 	marker.color.a = 1.0;
 
-	marker.lifetime = ros::Duration();
-	// marker.lifetime = ros::Duration(0.1);
+	// marker.lifetime = ros::Duration();
+	marker.lifetime = ros::Duration(0.05);
 	// marker.lifetime = ros::Duration(0.025);
 	
 	for(size_t i=0; i<traj_size; i++){
@@ -176,7 +212,8 @@ visualization_msgs::Marker get_selected_path(visualization_msgs::MarkerArray can
 geometry_msgs::PoseStamped set_robot_pose(double x, double y, double yaw)
 {
 	geometry_msgs::PoseStamped robot_pose;
-	robot_pose.header.frame_id = "/velodyne";
+	// robot_pose.header.frame_id = "/velodyne";
+	robot_pose.header.frame_id = "/input_map";
 	robot_pose.header.stamp = ros::Time::now();
 
 	robot_pose.pose.position.x = x;
@@ -191,12 +228,14 @@ geometry_msgs::PoseStamped set_robot_pose(double x, double y, double yaw)
 
 geometry_msgs::PoseStamped move(geometry_msgs::PoseStamped robot_pose, 
 								double linear, double angular, double dt)
-{
-	double next_yaw = tf::getYaw(robot_pose.pose.orientation) + angular*dt;
+{	double yaw = tf::getYaw(robot_pose.pose.orientation);
+	double next_yaw = yaw + angular*dt;
 	// cout<<"next_yaw : "<<next_yaw<<endl;
-	double next_x = robot_pose.pose.position.x + linear*cos(next_yaw)*dt;
+	double next_x = robot_pose.pose.position.x 
+				  + (-1.0*linear/angular*sin(yaw) + linear/angular*sin(yaw+angular*dt));
 	// cout<<"next_x : "<<next_x<<endl;
-	double next_y = robot_pose.pose.position.y + linear*sin(next_yaw)*dt;
+	double next_y = robot_pose.pose.position.y 
+				  + (linear/angular*cos(yaw) - linear/angular*cos(yaw+angular*dt));
 	// cout<<"next_y : "<<next_y<<endl;
 	geometry_msgs::PoseStamped next_pose;
 	next_pose = set_robot_pose(next_x, next_y, next_yaw);
@@ -226,11 +265,12 @@ bool check_collision(geometry_msgs::PoseStamped robot, vector<geometry_msgs::Poi
 	return collision_flag;
 }
 
-vector<geometry_msgs::PoseStamped> get_future_trajectory(double linear, double angular, double sim_time, double dt)
+vector<geometry_msgs::PoseStamped> get_future_trajectory(double linear, double angular, double sim_time, double dt, bool ex_flag)
 {
 	vector<geometry_msgs::PoseStamped> trajectory;
 	geometry_msgs::PoseStamped robot_pose;
-	robot_pose = set_robot_pose(0.0, 0.0, 0.0);
+	robot_pose = set_robot_pose(current_state.pose.position.x, current_state.pose.position.y, tf::getYaw(current_state.pose.orientation));
+	// robot_pose = set_robot_pose(0.0, 0.0, 0.0);
 	trajectory.push_back(robot_pose);
 	double time = 0.0;
 	while(time <= sim_time){
@@ -238,9 +278,17 @@ vector<geometry_msgs::PoseStamped> get_future_trajectory(double linear, double a
 		// cout<<"time : "<<time<<endl;
 		// cout<<"robot_pose.pose.position : "<<robot_pose.pose.position<<endl;
 		robot_pose = move(robot_pose, linear, angular, dt);
-		if(check_collision(robot_pose, obs_position_list)){
-			trajectory.clear();
-			break;
+		if(ex_flag){
+			if(check_collision(robot_pose, ex_obs_position_list)){
+				trajectory.clear();
+				break;
+			}
+		}
+		else{
+			if(check_collision(robot_pose, obs_position_list)){
+				trajectory.clear();
+				break;
+			}
 		}
 		trajectory.push_back(robot_pose);
 	}
@@ -344,119 +392,142 @@ double check_inverse_target_path_dist(vector<geometry_msgs::PoseStamped> traj,
 	// cout<<"final_pose : "<<final_pose<<endl;
 	size_t target_traj_size = target_traj.size();
 	double min_dist;
+	double score=0.0;
 	if(target_traj_size < 2){
 		min_dist = dist_vector(target_traj[0], final_pose.pose.position);
 		// cout<<"min_dist_ : "<<min_dist<<endl;
 	} 
 	else{
-		vector<double> dist_list;
-		for(size_t i=0; i<target_traj_size; i++){
-			double dist = dist_vector(target_traj[i], final_pose.pose.position);
-			dist_list.push_back(dist);
+		for(size_t i_traj=0; i_traj<traj.size(); i_traj++){
+			vector<double> dist_list;
+			for(size_t i=0; i<target_traj_size; i++){
+				// double dist = dist_vector(target_traj[i], final_pose.pose.position);
+				double dist = dist_vector(target_traj[i], traj[i_traj].pose.position);
+				dist_list.push_back(dist);
+			}
+			vector<double> tmp_dist_list = dist_list;
+			vector<double>::iterator iter1 
+				= min_element(tmp_dist_list.begin(), tmp_dist_list.end());
+			size_t index1 = distance(tmp_dist_list.begin(), iter1);
+			// cout<<"index1 : "<<index1<<endl;
+			auto min_iter1 = std::find(dist_list.begin(), dist_list.end(), tmp_dist_list[index1]);
+			size_t min_index1 = distance(dist_list.begin(), min_iter1);
+			// cout<<"min_index1 : "<<min_index1<<endl;
+			// tmp_dist_list.erase(tmp_dist_list.begin() + index1);
+			sort(tmp_dist_list.begin(), tmp_dist_list.end(), std::greater<double>());
+			tmp_dist_list.pop_back();
+			vector<double>::iterator iter2 
+				= min_element(tmp_dist_list.begin(), tmp_dist_list.end());
+			size_t index2 = distance(tmp_dist_list.begin(), iter2);
+			// cout<<"index2 : "<<index2<<endl;
+			auto min_iter2 = std::find(dist_list.begin(), dist_list.end(), tmp_dist_list[index2]);
+			size_t min_index2 = distance(dist_list.begin(), min_iter2);
+			// cout<<"min_index2 : "<<min_index2<<endl;
+			geometry_msgs::Point target_traj_point1 = target_traj[min_index1];
+			geometry_msgs::Point target_traj_point2 = target_traj[min_index2];
+			// cout<<"target_traj_point1 : "<<target_traj_point1<<endl;
+			// cout<<"target_traj_point2 : "<<target_traj_point2<<endl;
+			// min_dist = dist_line_and_point(target_traj_point1, 
+										   // target_traj_point2, 
+										   // final_pose.pose.position);
+			min_dist = dist_line_and_point(target_traj_point1, 
+										   target_traj_point2, 
+										   traj[i_traj].pose.position);
+			// cout<<"min_dist : "<<min_dist<<endl;
+			score += 10.0 - min_dist;
 		}
-		vector<double> tmp_dist_list = dist_list;
-		vector<double>::iterator iter1 = min_element(tmp_dist_list.begin(), tmp_dist_list.end());
-		size_t index1 = distance(tmp_dist_list.begin(), iter1);
-		// cout<<"index1 : "<<index1<<endl;
-		auto min_iter1 = std::find(dist_list.begin(), dist_list.end(), tmp_dist_list[index1]);
-		size_t min_index1 = distance(dist_list.begin(), min_iter1);
-		// cout<<"min_index1 : "<<min_index1<<endl;
-		// tmp_dist_list.erase(tmp_dist_list.begin() + index1);
-		sort(tmp_dist_list.begin(), tmp_dist_list.end(), std::greater<double>());
-		tmp_dist_list.pop_back();
-		vector<double>::iterator iter2 = min_element(tmp_dist_list.begin(), tmp_dist_list.end());
-		size_t index2 = distance(tmp_dist_list.begin(), iter2);
-		// cout<<"index2 : "<<index2<<endl;
-		auto min_iter2 = std::find(dist_list.begin(), dist_list.end(), tmp_dist_list[index2]);
-		size_t min_index2 = distance(dist_list.begin(), min_iter2);
-		// cout<<"min_index2 : "<<min_index2<<endl;
-		geometry_msgs::Point target_traj_point1 = target_traj[min_index1];
-		geometry_msgs::Point target_traj_point2 = target_traj[min_index2];
-		// cout<<"target_traj_point1 : "<<target_traj_point1<<endl;
-		// cout<<"target_traj_point2 : "<<target_traj_point2<<endl;
-		min_dist = dist_line_and_point(target_traj_point1, target_traj_point2, final_pose.pose.position);
-		// cout<<"min_dist : "<<min_dist<<endl;
-
 	}
+	score /= traj.size();
+	cout<<"score : "<<score<<endl;
 	// cout<<"min_dist : "<<min_dist<<endl;
 	// if(min_dist < 0.001){
 		// min_dist = 0.01;
 	// }
-	double inverse_target_path_dist = 10.0 - min_dist;
+	// double inverse_target_path_dist = 10.0 - min_dist;
+	double inverse_target_path_dist = score;
 	
 	return inverse_target_path_dist;
 }
 
 
-
-vector<double> evaluation_trajectories(vector<double> Vr, vector<double> sample_resolutions, 
-									   double dt)
+vector<double> evaluation_trajectories(vector<double> Vr, vector<double> sample_resolutions, double dt)
 {
-	path_candidate.markers.clear();
-	vector< vector<double> > path_and_eval_list;
-	int i = 0;
-	for(double linear=Vr[0]; linear<=Vr[1]; linear+=sample_resolutions[0]){
-		for(double angular=Vr[2]; angular<Vr[3]; angular+=sample_resolutions[1]){
-			// cout<<"============== i : "<<i<<" ============ "<<endl;
-			// cout<<"linear : "<<linear<<endl;
-			// cout<<"angular : "<<angular<<endl;
-			vector<geometry_msgs::PoseStamped> trajectory;
-			trajectory = get_future_trajectory(linear, angular, SIM_TIME, dt);
-			// cout<<"trajectory_size : "<<trajectory.size()<<endl;
-			if(trajectory.size() != 0){
-				double eval_obs_dist = check_nearest_obs_dist(trajectory, obs_position_list);
-				// printf("eval_obs_dist : %.4f\n", eval_obs_dist);
-				double eval_vel = fabs(linear);
-				// printf("eval_vel : %.4f\n", eval_vel);
-				double eval_heading = check_goal_heading(trajectory, next_target);
-				// printf("eval_heading : %.4f\n", eval_heading);
-				double eval_inv_target = check_inverse_target_path_dist(trajectory, target_path);
-				// printf("eval_inv_target : %.4f\n", eval_inv_target);
+	bool ex_flag =true;
+	double selected_linear; 
+	double selected_angular;
+	while(1){
+		path_candidate.markers.clear();
+		vector< vector<double> > path_and_eval_list;
+		int i = 0;
+		for(double linear=Vr[0]; linear<=Vr[1]; linear+=sample_resolutions[0]){
+			for(double angular=Vr[2]; angular<Vr[3]; angular+=sample_resolutions[1]){
+				cout<<"============== i : "<<i<<" ============ "<<endl;
+				cout<<"linear : "<<linear<<endl;
+				cout<<"angular : "<<angular<<endl;
+				vector<geometry_msgs::PoseStamped> trajectory;
+				trajectory = get_future_trajectory(linear, angular, SIM_TIME, dt, ex_flag);
+				if(trajectory.size() != 0){
+					double eval_obs_dist = check_nearest_obs_dist(trajectory, obs_position_list);
+					printf("eval_obs_dist : %.4f\n", eval_obs_dist);
+					double eval_vel = fabs(linear);
+					printf("eval_vel : %.4f\n", eval_vel);
+					double eval_heading = check_goal_heading(trajectory, next_target);
+					printf("eval_heading : %.4f\n", eval_heading);
+					double eval_inv_target 
+						= check_inverse_target_path_dist(trajectory, target_path);
+					printf("eval_inv_target : %.4f\n", eval_inv_target);
 
-				vector<double> path_and_eval{linear, angular, 
-											 eval_obs_dist, eval_vel, 
-											 eval_heading, eval_inv_target};
-				path_and_eval_list.push_back(path_and_eval);
+					vector<double> path_and_eval{linear, angular, 
+												 eval_obs_dist, eval_vel, 
+												 eval_heading, eval_inv_target};
+					path_and_eval_list.push_back(path_and_eval);
 
-				visualization_msgs::Marker vis_traj;
-				set_vis_traj(trajectory, vis_traj, i);
-				path_candidate.markers.push_back(vis_traj);
-				i++;
+					visualization_msgs::Marker vis_traj;
+					set_vis_traj(trajectory, vis_traj, i);
+					path_candidate.markers.push_back(vis_traj);
+					i++;
+				}
 			}
+		}
+
+		selected_linear = 0.0; 
+		selected_angular = 0.0;
+		size_t path_and_eval_list_size = path_and_eval_list.size();
+		// cout<<"path_and_eval_list_size : "<<path_and_eval_list_size<<endl;
+		if(path_and_eval_list_size >=  10){
+			double max_total_eval = COST_OBS*path_and_eval_list[0][2] 
+								  + COST_VEL*path_and_eval_list[0][3] 
+								  + COST_HEAD*path_and_eval_list[0][4]
+								  + COST_INV_TARGET*path_and_eval_list[0][5];
+			size_t max_eval_index = 0;
+			for(size_t i=1; i<path_and_eval_list_size; i++){
+				// cout<<"============== i : "<<i<<" ============ "<<endl;
+				double tmp_total_eval = COST_OBS*path_and_eval_list[i][2] 
+									  + COST_VEL*path_and_eval_list[i][3] 
+									  + COST_HEAD*path_and_eval_list[i][4]
+									  + COST_INV_TARGET*path_and_eval_list[i][5];
+				// cout<<"tmp_total_eval : "<<tmp_total_eval<<endl;
+				if(tmp_total_eval > max_total_eval){
+					max_total_eval = tmp_total_eval;
+					max_eval_index = i;
+				}
+			}
+			printf("max_total_eval : %.4f\n", max_total_eval);
+			printf("max_eval_index : %d\n", (int)max_eval_index);
+
+			selected_path = get_selected_path(path_candidate, max_eval_index);
+			selected_linear = path_and_eval_list[max_eval_index][0];
+			selected_angular = path_and_eval_list[max_eval_index][1];
+			
+			break;
+		}
+		else{
+			ex_flag = false;
 		}
 	}
 
-	double selected_linear = 0.0; 
-	double selected_angular = 0.0;
-	size_t path_and_eval_list_size = path_and_eval_list.size();
-	// cout<<"path_and_eval_list_size : "<<path_and_eval_list_size<<endl;
-	if(path_and_eval_list_size != 0){
-		double max_total_eval = COST_OBS*path_and_eval_list[0][2] 
-							  + COST_VEL*path_and_eval_list[0][3] 
-							  + COST_HEAD*path_and_eval_list[0][4]
-							  + COST_INV_TARGET*path_and_eval_list[0][5];
-		size_t max_eval_index = 0;
-		for(size_t i=1; i<path_and_eval_list_size; i++){
-			// cout<<"============== i : "<<i<<" ============ "<<endl;
-			double tmp_total_eval = COST_OBS*path_and_eval_list[i][2] 
-								  + COST_VEL*path_and_eval_list[i][3] 
-								  + COST_HEAD*path_and_eval_list[i][4]
-								  + COST_INV_TARGET*path_and_eval_list[i][5];
-			// cout<<"tmp_total_eval : "<<tmp_total_eval<<endl;
-			if(tmp_total_eval > max_total_eval){
-				max_total_eval = tmp_total_eval;
-				max_eval_index = i;
-			}
-		}
-		printf("max_total_eval : %.4f\n", max_total_eval);
-		printf("max_eval_index : %d\n", (int)max_eval_index);
-
-		selected_path = get_selected_path(path_candidate, max_eval_index);
-		selected_linear = path_and_eval_list[max_eval_index][0];
-		selected_angular = path_and_eval_list[max_eval_index][1];
-	}
-	
 	vector<double> selected_velocity_vector{selected_linear, selected_angular};
+	
 
 	return selected_velocity_vector;
 }
@@ -503,7 +574,6 @@ vector<geometry_msgs::Point> get_continuous_obs_position(nav_msgs::OccupancyGrid
 
 		continuous_obs_position[i] = obs_position;
 	}
-	// cout<<"continuous_obs_position.size() : "<<continuous_obs_position.size()<<endl;
 
 	return continuous_obs_position;
 }
@@ -520,16 +590,36 @@ void localMapCallback(nav_msgs::OccupancyGrid msg)
 	sub_local_map = true;
 }
 
-void lclCallback(nav_msgs::Odometry msg)
+void localMapExpandCallback(nav_msgs::OccupancyGrid msg)
 {
+	local_map = msg;
+	ex_obs_position_list.clear();
+	// cout<<"Subscribe local_map!!"<<endl;
+	ex_obs_position_list = get_continuous_obs_position(msg);
+	// for(size_t i=0; i <obs_position_list.size(); i++){
+		// cout<<"obs_positio_list["<<i<<"] : "<<obs_position_list[i]<<endl;
+	// }
+}
+
+void lclCallback(visualization_msgs::Marker msg)
+{
+	if(first_flag){
+		before_state = msg;
+		first_flag = false;
+	}
 	current_state = msg;
 	// cout<<"Subscribe lcl!!"<<endl;
 	sub_lcl = true;
 }
 
+void tinyCallback(nav_msgs::Odometry msg)
+{
+	tiny_odom = msg;
+}
+
 void set_target_marker(vector<geometry_msgs::Point> target, visualization_msgs::Marker &marker)
 {
-	marker.header.frame_id = "/velodyne";
+	marker.header.frame_id = "/input_map";
 	marker.header.stamp = ros::Time::now();
 	marker.id = 0;
 	marker.ns = "vin_target";
@@ -658,10 +748,11 @@ int main(int argc, char** argv)
 	print_param();
 
 
-	ros::Subscriber local_map_sub = n.subscribe("/local_map", 1, localMapCallback);
-	// ros::Subscriber local_map_sub = n.subscribe("/local_map_real", 1, localMapCallback);
-	// ros::Subscriber local_map_sub = n.subscribe("/local_map_real/expand", 1, localMapCallback);
-	ros::Subscriber lcl_sub = n.subscribe("/lcl5", 1, lclCallback);
+	ros::Subscriber local_map_sub = n.subscribe("/input_grid_map", 1, localMapCallback);
+	ros::Subscriber local_map_expand_sub 
+		= n.subscribe("/input_grid_map/expand", 1, localMapExpandCallback);
+	ros::Subscriber lcl_sub = n.subscribe("/my_agent_velocity", 1, lclCallback);
+	ros::Subscriber tiny_sub = n.subscribe("/tinypower/odom", 1, tinyCallback);
 	ros::Subscriber vin_next_targe_sub = n.subscribe("/vin/target_path", 1, vinNextTargetCallback);
 
 	ros::Publisher cmd_vel_pub = n.advertise<knm_tiny_msgs::Velocity>("/control_command", 1);
@@ -680,7 +771,7 @@ int main(int argc, char** argv)
 		if(sub_local_map && sub_lcl && sub_next_target){
 			clock_t start = clock();
 			vector<double> Vr;
-			Vr = get_DynamicWindow(current_state, dt);
+			Vr = get_DynamicWindow(current_state, before_state, dt);
 			vector<double> sample_resolutions;
 			sample_resolutions = get_sample_resolution(Vr, VEL_SAMPLES, ROT_VEL_SAMPLES);
 			// vector<geometry_msgs::PoseStamped> trajectory;
@@ -694,7 +785,7 @@ int main(int argc, char** argv)
 
 			knm_tiny_msgs::Velocity control_command;
 			control_command.op_linear = velocity_vector[0];
-			control_command.op_angular = velocity_vector[1];
+			control_command.op_angular = -1.0*velocity_vector[1];
 			cmd_vel_pub.publish(control_command);
 
 			// vis_path_single_pub.publish(vis_traj);
@@ -706,6 +797,17 @@ int main(int argc, char** argv)
 			// sub_local_map = false;
 			// sub_lcl = false;
 			// sub_next_target = false;
+		}
+		else{
+			if(!sub_local_map){
+				printf("No subscribe local_map!!\n");
+			}
+			if(!sub_lcl){
+				printf("No subscribe lcl!!\n");
+			}
+			if(!sub_next_target){
+				printf("No subscribe next_target!!\n");
+			}
 		}
 
 		loop_rate.sleep();

@@ -23,18 +23,18 @@ import time
 import sys
 import math
 
-from networks.vin import ValueIterationNetwork
+from networks.multi_agent_vin_with_velocity_and_orientation import ValueIterationNetwork
 
 import rospy
 import tf
 from std_msgs.msg import Int32, Int32MultiArray, MultiArrayDimension
 from nav_msgs.msg import OccupancyGrid, Odometry
 from geometry_msgs.msg import PoseStamped, Quaternion
-from visualization_msgs.msg import Marker
+from visualization_msgs.msg import Marker, MarkerArray
 
 
 class InputDataGenerator:
-    def __init__(self, input_image_size=(20, 20)):
+    def __init__(self, input_image_size=(20, 20), num_human=1):
         self.input_image_size = input_image_size
         #  self.gridmap_sub = \
                 #  rospy.Subscriber("/local_map_real/expand", OccupancyGrid, self.gridMapCallback)
@@ -47,6 +47,9 @@ class InputDataGenerator:
         self.gridmap_sub = \
                 rospy.Subscriber("/local_map", OccupancyGrid, self.gridMapCallback)
 
+        self.human_sub = \
+                rospy.Subscriber("/extract_human", MarkerArray, self.extractHumanCallback)
+
         self.lcl_sub = rospy.Subscriber("/lcl5", Odometry, self.lclCallback)
         self.local_goal_sub = rospy.Subscriber("/local_goal", PoseStamped, self.localGoalCallback)
 
@@ -55,13 +58,41 @@ class InputDataGenerator:
         self.reward_map = None
         
         self.grid_map = None
+        self.human = None
         self.lcl = None
         self.local_goal = None
         self.discreate_local_goal = None
 
         self.gridmap_sub_flag = False
+        self.human_sub_flag = False
         self.lcl_sub_flag = False
         self.local_goal_sub_flag = False
+
+        self.resize_resolution = None
+
+        self.num_human = num_human
+
+        self.position_data = None
+        self.orientation_data = None
+        self.velocity_data = None
+
+        self.other_position_data = [[] for i in xrange(self.num_human)]
+        self.other_orientation_data = [[] for i in xrange(self.num_human)]
+        self.other_velocity_data = [[] for i in xrange(self.num_human)]
+
+        self.action_list = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+        self.n_action = len(self.action_list)
+        self.dirs = \
+                {0: '>', 1: 'dr', 2: 'v', 3: 'dl', 4: '<', 5: 'ul', 6: '^', 7: 'ur', 8: '-'}
+        self.movement \
+            = {0: [0, 1], 1: [1, 1], 2: [1, 0], 3: [1, -1], \
+               4: [0, -1], 5: [-1, -1], 6: [-1, 0], 7: [-1, 1], 8: [0, 0]}
+        self.orientation_list = {}
+        for i in xrange(self.n_action):
+            self.orientation_list[i] = math.atan2(self.movement[i][0], self.movement[i][1])
+
+        self.orientation_res = 2.0*math.pi / float(self.n_action)
+
     
     def show_gridmap(self, grid_map):
         if not grid_map.ndim == 2:
@@ -116,6 +147,13 @@ class InputDataGenerator:
         plt.title(title)
         plt.show()
 
+    def extractHumanCallback(self, msg):
+        #  print "+++++++++++++++++++++++++++++++++++++++++++++"
+        self.human_sub_flag = True
+        self.human = msg
+        #  print "len(self.human.markers) : ", len(self.human.markers)
+
+
     def gridMapCallback(self, msg):
         #  print "========================================"
         self.gridmap_sub_flag = True
@@ -127,9 +165,11 @@ class InputDataGenerator:
         cell_size = msg.info.resolution
         rows = msg.info.height
         cols = msg.info.width
-        map_data = msg.data
-        #  print "map_data : ", type(map_data)
-        grid_data = np.asarray(map_data).reshape((rows, cols))
+
+        self.resize_resolution = cell_size*rows/self.input_image_size[0]
+        #  print "resize_resolution : ", self.resize_resolution
+
+        grid_data = np.asarray(msg.data).reshape((rows, cols))
         #  print "grid_data : "
         #  self.show_gridmap(grid_data)
         resize_grid_image = self.grid2image(grid_data)
@@ -170,19 +210,13 @@ class InputDataGenerator:
         #  print "local_vector : ", local_vector
         return [local_vector[0,0], local_vector[0,1]]
 
-    def create_reward_map(self, local_goal):
-        rows = self.grid_map.info.height
-        resolution = self.grid_map.info.resolution*rows/self.input_image_size[0]
-        #  print "resolution : ", resolution
+    def continuous2discreate(self, continuous_x, continuous_y):
+        x = continuous_x + self.input_image_size[0]*self.resize_resolution/2
+        y = continuous_y + self.input_image_size[1]*self.resize_resolution/2
 
-        #  print "local_goal : ", local_goal
-        x = local_goal[0] + self.input_image_size[0]*resolution/2
-        y = local_goal[1] + self.input_image_size[1]*resolution/2
-        #  print "x : ", x
-        #  print "y : ", y
+        grid_x = int(x / self.resize_resolution)
+        grid_y = int(y / self.resize_resolution)
 
-        grid_x = int(x / resolution)
-        grid_y = int(y / resolution)
         if grid_x < 0:
             grid_x = 0
         if grid_x >= self.input_image_size[0]:
@@ -192,6 +226,10 @@ class InputDataGenerator:
         if grid_y >= self.input_image_size[1]:
             grid_y = self.input_image_size[1]-1
 
+        return grid_y, grid_x
+
+    def create_reward_map(self, local_goal):
+        grid_y, grid_x = self.continuous2discreate(local_goal[0], local_goal[1])
         #  print "grid_x : ", grid_x
         #  print "grid_y : ", grid_y
         self.discreate_local_goal = [grid_y, grid_x]
@@ -214,7 +252,6 @@ class InputDataGenerator:
         
         self.reward_map = self.create_reward_map(local_local_goal)
         #  self.show_gridmap(self.reward_map)
-
     
     def cvt_input_data(self):
         #  print "self.grid_image : "
@@ -225,11 +262,57 @@ class InputDataGenerator:
                 np.expand_dims(self.reward_map, 0)), axis=0)
         self.input_data = np.expand_dims(input_data_, 0)
 
+    def generate_my_agent_data(self):
+        self.position_data \
+                = np.asarray(map(lambda x: x / 2, list(self.input_image_size)), dtype=np.int32)
+        self.position_data = np.expand_dims(self.position_data, 0)
+        #  print "position : ", self.position_data
+        self.orientation_data = 0.0
+        self.orientation_data = np.expand_dims(self.orientation_data, 0)
+        #  print "orientation : ", self.orientation_data
+        self.velocity_data = [0, 1]
+        self.velocity_data = np.expand_dims(self.velocity_data, 0)
+        #  print "velocity : ", self.velocity_data
+        
+    def get_other_orientation_and_velocity(self, human_orientation):
+        q = (human_orientation.x, human_orientation.y, human_orientation.z, human_orientation.w)
+        yaw = tf.transformations.euler_from_quaternion(q)[2]
+        #  print "yaw : ", yaw
+
+        action_index = int(yaw / self.orientation_res)
+        if action_index < 0:
+            action_index = self.n_action + action_index
+        #  print "action_index : ", action_index
+        velocity = self.movement[action_index]
+        #  print "velocity : ", velocity
+
+        return self.orientation_list[action_index], velocity
+
+    def generate_other_agent_data(self):
+        if self.human_sub_flag:
+            if len(self.human.markers) > 0:
+                for i in xrange(self.num_human):
+                    self.other_position_data[i] \
+                            = self.continuous2discreate(self.human.markers[i].pose.position.x, \
+                                                        self.human.markers[i].pose.position.y)
+                    orientation = self.human.markers[i].pose.orientation
+                    self.other_orientation_data[i], self.other_velocity_data[i]\
+                            = self.get_other_orientation_and_velocity(orientation)
+
+                self.other_position_data = np.asarray(self.other_position_data)
+                self.other_orientation_data = np.asarray(self.other_orientation_data)
+                self.other_velocity_data = np.asarray(self.other_velocity_data)
+
+                #  print "self.other_position_data : ", self.other_position_data
+                #  print "self.other_orientation_data : ", self.other_orientation_data
+                #  print "self.other_velocity_data : ", self.other_velocity_data
+                self.human_sub_flag = False
+
+
+
 
 class ValueIterationNetworkAgent:
-    def __init__(self, model_path, gpu, input_image_size, mode=1):
-        self.mode = mode
-
+    def __init__(self, model_path, gpu, input_image_size):
         self.model = ValueIterationNetwork(l_q=9, n_out=9, k=25)
         self.load_model(model_path)
         
@@ -243,7 +326,6 @@ class ValueIterationNetworkAgent:
         self.dirs = None
         self.set_action()
         
-        self.input_data_ = None
         self.traj_state_list = []
         self.traj_action_list = []
 
@@ -251,28 +333,33 @@ class ValueIterationNetworkAgent:
         #  print "max_challenge_times : ", max_challenge_times
 
     def set_action(self):
-        if self.mode == 0:    # mode=0 : 行動4パターン
-            self.action_list = [0, 1, 2, 3, 4]
-            self.n_action = len(self.action_list)
-            self.dirs = {0: '>', 1: '<', 2: 'v', 3: '^', 4: '-'}
-        elif self.mode == 1:    # mode=1 : 行動8パターン
-            self.action_list = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-            self.n_action = len(self.action_list)
-            self.dirs = \
-                    {0: '>', 1: '<', 2: 'v', 3: '^', 4: 'ur', 5: 'ul', 6: 'dr', 7: 'dl', 8: '-'}
-            self.movement \
-                = {0: [0, 1], 1: [0, -1], 2: [1, 0], 3: [-1, 0], \
-                   4: [-1, 1], 5: [-1, -1], 6: [1, 1], 7: [1, -1], 8: [0, 0]}
+        self.action_list = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+        self.n_action = len(self.action_list)
+        self.dirs = \
+                {0: '>', 1: '<', 2: 'v', 3: '^', 4: 'ur', 5: 'ul', 6: 'dr', 7: 'dl', 8: '-'}
+        self.movement \
+            = {0: [0, 1], 1: [0, -1], 2: [1, 0], 3: [-1, 0], \
+               4: [-1, 1], 5: [-1, -1], 6: [1, 1], 7: [1, -1], 8: [0, 0]}
 
     def load_model(self, filename):
         print "Load {}!!".format(filename)
         serializers.load_npz(filename, self.model)
     
-    def get_action(self, input_data, state_data):
+    def get_action(self, input_data, \
+                   my_position_data, my_velocity_data, my_orientation_data,\
+                   other_position_data, other_velocity_data, other_orientation_data):
         if self.gpu >= 0:
             input_data = cuda.to_gpu(input_data)
+            my_position_data = cuda.to_gpu(my_position_data)
+            my_orientation_data = cuda.to_gpu(my_orientation_data)
+            my_velocity_data = cuda.to_gpu(my_velocity_data)
+            other_position_data = cuda.to_gpu(other_position_data)
+            other_orientation_data = cuda.to_gpu(other_orientation_data)
+            other_velocity_data = cuda.to_gpu(other_velocity_data)
 
-        p = self.model(input_data, state_data)
+        p = self.model(input_data, \
+                       my_position_data, my_velocity_data, my_orientation_data, \
+                       other_position_data, other_velocity_data, other_orientation_data)
         action = np.argmax(p.data)
         return action
 
@@ -308,25 +395,35 @@ class ValueIterationNetworkAgent:
         return [next_y, next_x], out_of_range, collision
 
 
-    def get_path(self, input_data, state_data, local_goal):
+    def get_path(self, input_data, \
+                 my_position_data, my_velocity_data, my_orientation_data,\
+                 other_position_data, other_velocity_data, other_orientation_data, local_goal):
+
         state_list = []
 
-        self.input_data_ = input_data
         grid_image = input_data[0][0]
 
-        state_data_ = copy.deepcopy(state_data)
+        my_position_data_ = copy.deepcopy(my_position_data)
+        my_velocity_data_ = copy.deepcopy(my_velocity_data)
+        my_orientation_data_ = copy.deepcopy(my_orientation_data)
         #  print "state_data_ : ", state_data_, type(state_data_)
-        state = state_data_[0]
+        state = my_position_data_[0]
         #  print "state : ", state, type(state)
         state_list.append(list(state))
         #  print "state_list : ", state_list
 
 
         for i in xrange(self.max_challenge_times):
-            state_list.append(\
-                    self.move(state, self.get_action(input_data, state_data_), grid_image)[0])
+            action = self.get_action(input_data, \
+                    my_position_data_, my_velocity_data_, my_orientation_data_,\
+                    other_position_data, other_velocity_data, other_orientation_data)
 
-            state_data_[0] = state_list[-1]
+            state_list.append(self.move(state, action, grid_image)[0])
+
+            my_position_data_[0] = state_list[-1]
+            my_velocity_data_[0] = self.movement[int(action)]
+            my_orientation_data_[0] \
+                    = math.atan2(self.movement[int(action)][0], self.movement[int(action)][1])
             if state_list[-1] == local_goal:
                 break
 
@@ -350,7 +447,7 @@ class ValueIterationNetworkAgent:
 
 
 def main(model_path, gpu):
-    rospy.init_node("ros_vin_predict")
+    rospy.init_node("ros_multi_agent_vin_predict")
 
     idg = InputDataGenerator()
 
@@ -359,11 +456,8 @@ def main(model_path, gpu):
     agent = ValueIterationNetworkAgent(model_path, gpu, idg.input_image_size)
     
     input_data = None
-    #  state = [10, 6]
-    state = np.asarray(map(lambda x: x / 2, list(idg.input_image_size)), dtype=np.int32)
-    state_data = np.expand_dims(state, 0)
-    #  print "state_data : ", state_data
-    orientation = 0.0
+
+    idg.generate_my_agent_data()
 
     loop_rate = rospy.Rate(100)
 
@@ -375,18 +469,20 @@ def main(model_path, gpu):
     print "Here we go!!"
 
     while not rospy.is_shutdown():
-        if idg.gridmap_sub_flag and idg.local_goal_sub_flag and idg.grid_image is not None:
+        if idg.gridmap_sub_flag and idg.local_goal_sub_flag and idg.human_sub_flag \
+                and idg.grid_image is not None:
             print "*****************************************"
             start_time = time.time()
             idg.cvt_input_data()
             #  print "idg.input_data"
             #  print idg.input_data
-            input_data = idg.input_data
-            if gpu >= 0:
-                input_data = cuda.to_gpu(input_data)
-            #  print "state_data : ", state_data
+            idg.generate_other_agent_data()
             
-            #  action = agent.get_action(input_data, state_data)
+            #  action = agent.get_action(idg.input_data, \
+                                      #  idg.position_data, idg.velocity_data, \
+                                      #  idg.orientation_data,\
+                                      #  idg.other_position_data, idg.other_velocity_data, \
+                                      #  idg.other_orientation_data)
             #  print "action : ", action, "(", agent.dirs[int(action)], ")"
             #  next_state, out_of_range, collision \
                     #  = agent.move(state_data[0], action, input_data[0][0])
@@ -397,9 +493,12 @@ def main(model_path, gpu):
             #  print "ros_next_state : ", ros_next_state
             #  next_target_pub.publish(ros_next_state)
             
-            agent.get_path(input_data, state_data, idg.discreate_local_goal)
-            print "agent.traj_state_list : ", agent.traj_state_list
-            #  agent.view_path(input_data ,agent.traj_state_list)
+            agent.get_path(idg.input_data, \
+                           idg.position_data, idg.velocity_data, idg.orientation_data,\
+                           idg.other_position_data, idg.other_velocity_data, \
+                           idg.other_orientation_data, idg.discreate_local_goal)
+            #  print "agent.traj_state_list : ", agent.traj_state_list
+            #  agent.view_path(idg.input_data ,agent.traj_state_list)
 
             ros_next_state.data = np.asarray(agent.traj_state_list).reshape(-1)
             next_target_pub.publish(ros_next_state)
@@ -416,7 +515,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='This script is ros_vin_predict ...')
     parser.add_argument('-g', '--gpu', default=-1, type=int, help='number of gpu device')
     parser.add_argument('-m', '--model_path', \
-        default='/home/amsl/ros_catkin_ws/src/master_thesis/ros_value_iteration_networks/models/vin_model_50_epoch_5000_domain_9_action_20x20_40_to_0_n_objects_seed_0/vin_model_46.model', \
+        default='/home/amsl/ros_catkin_ws/src/master_thesis/ros_value_iteration_networks/models/multi_agent_object_world_vin_model_50_epoch_5000_domain_9_action_20x20_50_to_0_n_objects_2_agents_with_velocity_and_orientation_future_seed_0_relu_adam/multi_agent_vin_model_50.model', \
         type=str, help="load model path")
 
     args = parser.parse_args()
